@@ -1,2 +1,3 @@
 .venv
 .env
+api_client/__pycache__
