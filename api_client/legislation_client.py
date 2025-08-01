@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from zeep import Client
 from api_client.legislation_document import LegislationDocument
 from typing import List, Optional
@@ -7,15 +8,15 @@ from __future__ import annotations
 class LegislationClient:
     def __init__(self, wsdl_url: str):
         """Do not call this directly, use `create` class method instead."""
-        self.wsdl_url = wsdl_url
-        self.client = None
-        self.token = None
+        self.wsdl_url: str = wsdl_url
+        self.client: Client = None
+        self.token: str = None
         self.token_expires_at = None
 
     @classmethod
     async def create(cls, wsdl_url: str) -> "LegislationClient":
         """Factory method for instance creation
-        
+
         :param wsdl_url: URL to the WSDL service
         :return: New LegislationClient instance
         :raises ConnectionError: If SOAP client initialization fails
@@ -69,11 +70,24 @@ class LegislationClient:
         pass
 
     # Private methods
-    async def _ensure_valid_token():
-        pass
+    def _get_fresh_token(self):
+        """Gets a new token from the SOAP API"""
+        try:
+            self.token = self.client.service.GetToken()
+            self.token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+        except Exception as e:
+            raise ConnectionError(f"Failed to get token: {e}")
 
-    async def _get_fresh_token():
-        pass
+    def _ensure_valid_token(self):
+        """Gets a new token from the SOAP API if it does not exist or is expired"""
+        if self.token is None or self._is_token_expired():
+            self._get_fresh_token()
+
+    def _is_token_expired(self) -> bool:
+        """Checks if current SOAP API token is expired"""
+        if self.token_expires_at is None:
+            return True
+        return datetime.now(timezone.utc) >= self.token_expires_at
 
     def _process_search_results(raw_results) -> List[LegislationDocument]:
         pass
