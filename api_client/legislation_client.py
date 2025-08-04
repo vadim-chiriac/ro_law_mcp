@@ -1,25 +1,30 @@
 from __future__ import annotations
+from api_client.legislation_document import LegislationDocument
 from datetime import datetime, timedelta, timezone
 from zeep import Client
-from legislation_document import LegislationDocument
 from typing import List, Optional
 import logging
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class LegislationClient:
-    def __init__(self, wsdl_url: str):
+    def __init__(self, wsdl_url: str, connection_timeout: int, read_timeout: int):
         """Do not call this directly, use `create` class method instead."""
 
         self.wsdl_url: str = wsdl_url
+        self.connection_timeout = connection_timeout
+        self.read_timeout = read_timeout
         self.client: Client = None
         self.token: str = None
         self.token_expires_at = None
 
     @classmethod
-    async def create(cls, wsdl_url: str) -> "LegislationClient":
+    async def create(
+        cls, wsdl_url: str, connection_timeout: int = 10, read_timeout: int = 30
+    ) -> "LegislationClient":
         """Factory method for instance creation
 
         :param wsdl_url: URL to the WSDL service
@@ -27,10 +32,9 @@ class LegislationClient:
         :raises ConnectionError: If SOAP client initialization fails
         """
 
-        instance = cls(wsdl_url)
-
+        instance = cls(wsdl_url, connection_timeout, read_timeout)
         try:
-            instance.client = Client(wsdl_url)
+            instance.client = instance._create_soap_client()
         except Exception as e:
             raise ConnectionError(f"Failed to create SOAP client: {e}")
 
@@ -63,7 +67,7 @@ class LegislationClient:
         return self._execute_search(search_model)
 
     async def search_by_number(
-        self, number: str, year: Optional[int] = None, max_results=10
+        self, number: str, year: Optional[int] = None, max_results: int = 10
     ) -> List[LegislationDocument]:
         """Search legislation documents by number and optional year.
 
@@ -76,16 +80,30 @@ class LegislationClient:
         )
         return self._execute_search(search_model)
 
-    async def search_advanced(**kwargs) -> List[LegislationDocument]:
+    async def search_advanced(self, **kwargs) -> List[LegislationDocument]:
         """Advanced search with multiple parameters.
 
         :param kwargs: Search parameters like title, number, year, issuer etc.
         :return: List of `LegislationDocument` objects matching the advanced search criteria.
         """
-
-        pass
+        search_model = self._create_search_model(**kwargs)
+        return self._execute_search(search_model)
 
     # Private methods
+    def _create_soap_client(self) -> Client:
+        """Creates SOAP client with configured timeouts"""
+        from zeep.transports import Transport
+        from requests import Session
+
+        session = Session()
+        session.timeout = (self.connection_timeout, self.read_timeout)
+        logger.info(f"Session timeout set to: {session.timeout}")
+
+        transport = Transport(session=session)
+        logger.info(f"Transport session timeout: {transport.session.timeout}")
+
+        return Client(self.wsdl_url, transport=transport)
+
     def _get_fresh_token(self):
         """Gets a new token from the SOAP API"""
 
@@ -107,10 +125,10 @@ class LegislationClient:
         if self.token_expires_at is None:
             return True
         return datetime.now(timezone.utc) >= self.token_expires_at
-    
+
     def _execute_search(self, search_model: dict) -> List[LegislationDocument]:
-        """ Executes a search with the given search model
-        
+        """Executes a search with the given search model
+
         :param search_model: The built search model to use with the SOAP API.
         :return: List of `LegislationDocument` matching the search model.
         """
@@ -122,7 +140,6 @@ class LegislationClient:
             return parsed_results
         except Exception as e:
             raise ConnectionError(f"Error retrieving search results: {e}")
-
 
     def _parse_search_results(
         self, raw_results: List[dict]
@@ -187,18 +204,3 @@ class LegislationClient:
             "SearchTitlu": title,
             "SearchText": text,
         }
-
-
-import asyncio
-
-
-async def test_client():
-    logger.info("Testing client...")
-    l_client = await LegislationClient.create(
-        "https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl"
-    )
-    await l_client.search_by_text("contract")
-
-
-if __name__ == "__main__":
-    asyncio.run(test_client())
