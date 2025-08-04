@@ -138,6 +138,7 @@ class SoapClient:
             return parsed_results
         except Exception as e:
             if retry:
+                logger.info(f"Exception: {e}")
                 logger.warning(
                     f"Page searched failed for page no. {search_model["NumarPagina"]}, retrying..."
                 )

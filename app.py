@@ -36,10 +36,10 @@ async def main():
         logger.info("Testing SOAP client...")
 
         result = await search_service.try_get_exact_match(
-            document_type="conventie",
-            number=16813,
-            year=1998,
-            issuer="MINISTERUL FINANŢELOR"
+            document_type="ordin",
+            number=3216,
+            year=2020,
+            issuer="MINISTERUL FINANŢELOR PUBLICE"
         )
         if not result:
             logger.info("No result found!")

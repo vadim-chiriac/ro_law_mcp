@@ -13,6 +13,7 @@ ISSUER_MAPPINGS = {
     "anaf": "agentia nationala de administrare fiscala",
     "ministerul finantelor": "ministerul finantelor publice",
     "ministerul finan?elor": "ministerul finantelor publice",
+    "ministerul finan?elor publice":"ministerul finantelor publice",
     "ministerul agriculturii, padurilor ?i dezvoltarii rurale": "ministerul agriculturii, padurilor si dezvoltarii rurale",
     "ministerul agriculturii ?i dezvoltarii rurale":"ministerul agriculturii si dezvoltarii rurale",
     "ministerul administra?iei ?i internelor":"ministerul administratiei si internelor",
