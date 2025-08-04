@@ -2,7 +2,8 @@ import os
 import asyncio
 from dotenv import load_dotenv
 import logging
-from api_client.legislation_client import LegislationClient
+from api_client.soap_client import SoapClient
+from document_search.search_service import SearchService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,25 +20,31 @@ READ_TIMEOUT = int(os.environ.get("READ_TIMEOUT", "30"))
 async def main():
     logger.info("Starting application...")
     try:
-        logger.info("Initializing legislation client...")
+        logger.info("Initializing SOAP client...")
 
-        client = await LegislationClient.create(
+        client = await SoapClient.create(
             wsdl_url=WSDL_URL,
             connection_timeout=CONNECTION_TIMEOUT,
             read_timeout=READ_TIMEOUT,
         )
 
-        logger.info("Legislation client successfully started!")
+        search_service = SearchService(soap_client=client)
+
+        logger.info("SOAP client successfully started!")
 
         # Temporary testing
-        logger.info("Testing legislation client...")
-        
-        results = await client.search_advanced(year=1800, page_size=24)
-        logger.info(f"Found {len(results)} documents.")
-        
-        for r in results:
-            logger.info(f"Document title: {r.title}")
-            logger.info(f"Document effective date.: {r.effective_date}")
+        logger.info("Testing SOAP client...")
+
+        result = await search_service.try_get_exact_match(
+            document_type="hg",
+            number=55,
+            year=2006,
+            issuer="guvern"
+        )
+        if not result:
+            logger.info("No result found!")
+        else:
+            logger.info(f"Document title: {result.title}")
 
     except Exception as e:
         logger.exception(f"Error starting application: {e}")

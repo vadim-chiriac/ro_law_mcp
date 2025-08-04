@@ -6,7 +6,7 @@ from typing import Optional
 class LegislationDocument:
     title: str
     number: str
-    act_type: str
+    document_type: str
     issuer: str
     effective_date: datetime
     text: str
