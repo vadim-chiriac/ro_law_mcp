@@ -23,7 +23,7 @@ class LegislationClient:
         """Factory method for instance creation
 
         :param wsdl_url: URL to the WSDL service
-        :return: New LegislationClient instance
+        :return: New `LegislationClient` instance
         :raises ConnectionError: If SOAP client initialization fails
         """
 
@@ -44,48 +44,43 @@ class LegislationClient:
 
         :param query: Full-text search query.
         :param max_results: Maximum number of results to return.
-        :return: List of LegislationDocument objects matching the search criteria.
+        :return: List of `LegislationDocument` objects matching the search criteria.
         """
 
-        self._ensure_valid_token()
         search_model = self._create_search_model(text=query, page_size=max_results)
-        try:
-            results = self.client.service.Search(search_model, self.token)
-            parsed_results = self._parse_search_results(results)
-
-            return parsed_results
-        except Exception as e:
-            raise ConnectionError(f"Error retrieving search results: {e}")
+        return self._execute_search(search_model)
 
     async def search_by_title(
-        title: str, max_results: int = 10
+        self, title: str, max_results: int = 10
     ) -> List[LegislationDocument]:
         """Search legislation documents by title.
 
         :param title: Title to search for.
         :param max_results: Maximum number of results to return.
-        :return: List of LegislationDocument objects matching the title.
+        :return: List of `LegislationDocument` objects matching the title.
         """
-
-        pass
+        search_model = self._create_search_model(title=title, page_size=max_results)
+        return self._execute_search(search_model)
 
     async def search_by_number(
-        number: str, year: Optional[int] = None
+        self, number: str, year: Optional[int] = None, max_results=10
     ) -> List[LegislationDocument]:
         """Search legislation documents by number and optional year.
 
         :param number: Document number to search for.
         :param year: Optional year to filter results.
-        :return: List of LegislationDocument objects matching the number and year.
+        :return: List of `LegislationDocument` objects matching the number and year.
         """
-
-        pass
+        search_model = self._create_search_model(
+            number=number, year=year, page_size=max_results
+        )
+        return self._execute_search(search_model)
 
     async def search_advanced(**kwargs) -> List[LegislationDocument]:
         """Advanced search with multiple parameters.
 
-        :param kwargs: Search parameters like title, number, year, emitter, etc.
-        :return: List of LegislationDocument objects matching the advanced search criteria.
+        :param kwargs: Search parameters like title, number, year, issuer etc.
+        :return: List of `LegislationDocument` objects matching the advanced search criteria.
         """
 
         pass
@@ -112,6 +107,22 @@ class LegislationClient:
         if self.token_expires_at is None:
             return True
         return datetime.now(timezone.utc) >= self.token_expires_at
+    
+    def _execute_search(self, search_model: dict) -> List[LegislationDocument]:
+        """ Executes a search with the given search model
+        
+        :param search_model: The built search model to use with the SOAP API.
+        :return: List of `LegislationDocument` matching the search model.
+        """
+        self._ensure_valid_token()
+        try:
+            results = self.client.service.Search(search_model, self.token)
+            parsed_results = self._parse_search_results(results)
+
+            return parsed_results
+        except Exception as e:
+            raise ConnectionError(f"Error retrieving search results: {e}")
+
 
     def _parse_search_results(
         self, raw_results: List[dict]
@@ -121,7 +132,7 @@ class LegislationClient:
         :param raw_results: List of raw results received from the SOAP API
         :return: List of parsed results
         """
-        
+
         parsed_results = []
         for r in raw_results:
             title = r.Titlu
