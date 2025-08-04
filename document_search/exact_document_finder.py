@@ -21,7 +21,12 @@ class ExactDocumentFinder:
         self.client = legislation_client
 
     async def find_exact_document(
-        self, document_type: str, number: int, year: int, issuer: str
+        self,
+        document_type: str,
+        number: int,
+        year: int,
+        issuer: str,
+        alternate_search_text: bool = False,
     ) -> Optional[LegislationDocument]:
         """Tries to find an exact match for the given parameters
 
@@ -31,24 +36,37 @@ class ExactDocumentFinder:
         :param issuer: The issuing authority of the document (e.g. Guvernul României)
         """
         search_text = ""
-        search_text += get_canonical_document_type(document_type, issuer)
-        search_text += f" {number}/{year}"
+        issuer_canonical = get_canonical_issuer(issuer)
+        search_text += get_canonical_document_type(document_type, issuer_canonical)
+        if alternate_search_text:
+            search_text += f" din {number} * {year}"
+        else:    
+            search_text += f" {number}/{year}"
 
         logger.info(f"Trying to find match for {search_text}")
-        results = await self.client.search_raw(title=search_text)
-        if not results:
-            return None
-
+        
+        try:
+            results = await self.client.search_raw(title=search_text)
+        except ConnectionError:
+            if (alternate_search_text):
+                return None
+            else:
+                return await self.find_exact_document(document_type, number, year, issuer, True)
+           
         logger.info(f"Found {len(results)} initial results.")
+        
         exact_match = self._get_exact_match(
             all_results=results,
             expected_type=document_type,
             expected_no=number,
             expected_issuer=issuer,
         )
+        
+        if not exact_match and not alternate_search_text:
+            return await self.find_exact_document(document_type, number, year, issuer, True)
 
         return exact_match
-
+    
     def _get_exact_match(
         self,
         all_results: List[LegislationDocument],
@@ -74,7 +92,7 @@ class ExactDocumentFinder:
                 continue
 
             number = result.number
-            if not self._compare_no(number, expected_no):
+            if not self._compare_no(number, expected_no) and number != "0":
                 continue
 
             if not self._compare_issuer(issuer, expected_issuer):
@@ -93,11 +111,16 @@ class ExactDocumentFinder:
         :param expected_type: The type expected by the client
         :return: `True` if types match, `False` otherwise
         """
+        issuer_canonical = get_canonical_issuer(issuer)
 
-        actual_canonical = get_canonical_document_type(actual_type, issuer)
-        expected_canonical = get_canonical_document_type(expected_type, issuer)
+        actual_canonical = get_canonical_document_type(actual_type, issuer_canonical)
+        expected_canonical = get_canonical_document_type(
+            expected_type, issuer_canonical
+        )
 
-        logger.info(f"Comparing normalized types: '{actual_canonical}' vs '{expected_canonical}'")
+        logger.info(
+            f"Comparing normalized types: '{actual_canonical}' vs '{expected_canonical}'"
+        )
 
         do_types_match = actual_canonical == expected_canonical
         logger.info(f"Match: {do_types_match}")
@@ -133,7 +156,10 @@ class ExactDocumentFinder:
             f"Comparing normalized issuers: '{actual_canonical}' vs '{expected_canonical}'"
         )
 
-        do_issuers_match = expected_canonical in actual_canonical or actual_canonical in expected_canonical
+        do_issuers_match = (
+            expected_canonical in actual_canonical
+            or actual_canonical in expected_canonical
+        )
         logger.info(f"Match: {do_issuers_match}")
 
         return do_issuers_match

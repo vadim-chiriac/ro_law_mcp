@@ -54,15 +54,17 @@ class SearchService:
         :return: List of `LegislationDocument` objects matching the number and year.
         """
 
-        return await self.client.search_raw(number=number, year=year, page_size=max_results)
+        return await self.client.search_raw(
+            number=number, year=year, page_size=max_results
+        )
 
     async def try_get_exact_match(
         self, document_type: str, number: int, year: int, issuer: str
     ):
         """Tries to get an exact match from document identifiers.
-        
+
         :param document_type: The type of document (e.g. 'lege', 'hotarare')
-        :param number: The number of the document 
+        :param number: The number of the document
         :param year: The issuance year of the document
         :param issuer: The issuer of the document (e.g. 'guvernul')
         :return

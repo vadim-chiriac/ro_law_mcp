@@ -36,15 +36,19 @@ async def main():
         logger.info("Testing SOAP client...")
 
         result = await search_service.try_get_exact_match(
-            document_type="hg",
-            number=55,
-            year=2006,
-            issuer="guvern"
+            document_type="conventie",
+            number=16813,
+            year=1998,
+            issuer="MINISTERUL FINANŢELOR"
         )
         if not result:
             logger.info("No result found!")
         else:
             logger.info(f"Document title: {result.title}")
+        
+        # results = await search_service.search_by_title("NORMA din 16 * 2014")
+        # for r in results:
+        #     logger.info(r.title)
 
     except Exception as e:
         logger.exception(f"Error starting application: {e}")
