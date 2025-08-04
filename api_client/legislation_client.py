@@ -46,7 +46,7 @@ class LegislationClient:
         :param max_results: Maximum number of results to return.
         :return: List of LegislationDocument objects matching the search criteria.
         """
-        
+
         self._ensure_valid_token()
         search_model = self._create_search_model(text=query, page_size=max_results)
         try:
@@ -66,7 +66,7 @@ class LegislationClient:
         :param max_results: Maximum number of results to return.
         :return: List of LegislationDocument objects matching the title.
         """
-        
+
         pass
 
     async def search_by_number(
@@ -78,7 +78,7 @@ class LegislationClient:
         :param year: Optional year to filter results.
         :return: List of LegislationDocument objects matching the number and year.
         """
-        
+
         pass
 
     async def search_advanced(**kwargs) -> List[LegislationDocument]:
@@ -87,7 +87,7 @@ class LegislationClient:
         :param kwargs: Search parameters like title, number, year, emitter, etc.
         :return: List of LegislationDocument objects matching the advanced search criteria.
         """
-        
+
         pass
 
     # Private methods
@@ -113,36 +113,38 @@ class LegislationClient:
             return True
         return datetime.now(timezone.utc) >= self.token_expires_at
 
-    def _parse_search_results(self, raw_results: List[dict]) -> List[LegislationDocument]:
+    def _parse_search_results(
+        self, raw_results: List[dict]
+    ) -> List[LegislationDocument]:
         """Converts the raw response from the SOAP API into a more generally readable format
 
         :param raw_results: List of raw results received from the SOAP API
         :return: List of parsed results
         """
-        print(f"Raw results type: {type(raw_results)}")
-        print(f"Raw results: {raw_results}")
         
         parsed_results = []
-        # for r in raw_results:
-        #     title = r["Titlu"]
-        #     number = r["Numar"]
-        #     type = r["TipAct"]
-        #     issuer = r["Emitent"]
-        #     effective_date = datetime.strptime(r["DataVigoare"], "%Y-%m-%d")
-        #     text = r["Text"]
-        #     publication = r.get("Publicatie", None)
+        for r in raw_results:
+            title = r.Titlu
+            number = r.Numar
+            act_type = r.TipAct
+            issuer = r.Emitent
+            effective_date = datetime.strptime(r.DataVigoare, "%Y-%m-%d")
+            text = r.Text
+            publication = getattr(r, "Publicatie", None)
+            url = getattr(r, "LinkHtml", None)
 
-        #     parsed_result = LegislationDocument(
-        #         title=title,
-        #         number=number,
-        #         type=type,
-        #         issuer=issuer,
-        #         effective_date=effective_date,
-        #         text=text,
-        #         publication=publication,
-        #     )
+            parsed_result = LegislationDocument(
+                title=title,
+                number=number,
+                act_type=act_type,
+                issuer=issuer,
+                effective_date=effective_date,
+                text=text,
+                publication=publication,
+                url=url,
+            )
 
-        #     parsed_results.append(parsed_result)
+            parsed_results.append(parsed_result)
 
         return parsed_results
 
@@ -165,7 +167,7 @@ class LegislationClient:
         :param page_size: Maximum number of results per page
         :return: Dictionary formatted for SOAP API search request
         """
-        
+
         return {
             "NumarPagina": page,
             "RezultatePagina": page_size,
@@ -175,12 +177,17 @@ class LegislationClient:
             "SearchText": text,
         }
 
+
 import asyncio
+
 
 async def test_client():
     logger.info("Testing client...")
-    l_client = await LegislationClient.create('https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl')
+    l_client = await LegislationClient.create(
+        "https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl"
+    )
     await l_client.search_by_text("contract")
-    
+
+
 if __name__ == "__main__":
     asyncio.run(test_client())

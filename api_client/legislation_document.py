@@ -6,8 +6,9 @@ from typing import Optional
 class LegislationDocument:
     title: str
     number: str
-    type: str
+    act_type: str
     issuer: str
     effective_date: datetime
     text: str
     publication: Optional[str] = None
+    url: Optional[str] = None
