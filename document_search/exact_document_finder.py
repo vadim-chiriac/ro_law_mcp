@@ -25,8 +25,7 @@ class ExactDocumentFinder:
         document_type: str,
         number: int,
         year: int,
-        issuer: str,
-        alternate_search_text: bool = False,
+        issuer: str
     ) -> Optional[LegislationDocument]:
         """Tries to find an exact match for the given parameters
 
@@ -35,38 +34,60 @@ class ExactDocumentFinder:
         :param year: The issuance year of the document. This might be different than publication year or entry into force year.
         :param issuer: The issuing authority of the document (e.g. Guvernul României)
         """
-        search_text = ""
-        issuer_canonical = get_canonical_issuer(issuer)
-        search_text += get_canonical_document_type(document_type, issuer_canonical)
-        if alternate_search_text:
-            search_text += f" din {number} * {year}"
-        else:    
-            search_text += f" {number}/{year}"
-
-        logger.info(f"Trying to find match for {search_text}")
+        result = await self._try_search_strategy(
+            document_type,
+            number,
+            year,
+            issuer,
+            strategy="standard"
+        )
+        
+        if result:
+            return result
+        
+        result = await self._try_search_strategy(
+            document_type,
+            number,
+            year,
+            issuer,
+            strategy="alternate"
+        )
+        
+        return result
+    
+    async def _try_search_strategy(
+        self,
+        document_type: str,
+        number: int,
+        year: int,
+        issuer: str,
+        strategy: str
+    ) -> Optional[LegislationDocument]:
+        """Tries one search strategy"""
+        
+        search_text = self._build_search_text(document_type, number, year, issuer, strategy)
+        logger.info(f"Trying {strategy} search: {search_text}")
         
         try:
             results = await self.client.search_raw(title=search_text)
-        except ConnectionError:
-            if (alternate_search_text):
-                return None
-            else:
-                return await self.find_exact_document(document_type, number, year, issuer, True)
-           
-        logger.info(f"Found {len(results)} initial results.")
+            logger.info(f"Found {len(results)} results for {strategy} search")
+            return self._get_exact_match(results, document_type, number, issuer)
+        except ConnectionError as e:
+            logger.warning(f"{strategy.title()} search failed: {e}")
+            return None
         
-        exact_match = self._get_exact_match(
-            all_results=results,
-            expected_type=document_type,
-            expected_no=number,
-            expected_issuer=issuer,
-        )
-        
-        if not exact_match and not alternate_search_text:
-            return await self.find_exact_document(document_type, number, year, issuer, True)
+    def _build_search_text(self, document_type: str, number: int, year: int, issuer: str, strategy: str) -> str:
+        """Build search text based on strategy"""
+        issuer_canonical = get_canonical_issuer(issuer)
+        doc_type_canonical = get_canonical_document_type(document_type, issuer_canonical)
 
-        return exact_match
-    
+        if strategy == "standard":
+            return f"{doc_type_canonical} {number}/{year}"
+        elif strategy == "alternate":
+            return f"{doc_type_canonical} din {number} * {year}"
+        else:
+            raise ValueError(f"Unknown strategy: {strategy}")
+        
     def _get_exact_match(
         self,
         all_results: List[LegislationDocument],
@@ -92,6 +113,8 @@ class ExactDocumentFinder:
                 continue
 
             number = result.number
+            # Sometimes, the API returns "0" as the document number for those documents which are 
+            # identified only by date. In this case, we skip the number check.
             if not self._compare_no(number, expected_no) and number != "0":
                 continue
 

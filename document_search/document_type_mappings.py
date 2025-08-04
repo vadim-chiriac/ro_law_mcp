@@ -16,8 +16,6 @@ SIMPLE_TYPE_MAPPINGS = {
 # Context-dependent mappings
 CONTEXT_DEPENDENT_MAPPINGS = {
     ("hotarare", "guvernul"): "hg",
-    ("hotarare", "camera_deputatilor"): "hotarare_camera",
-    ("hotarare", "senat"): "hotarare_senat",
 }
 
 
@@ -28,6 +26,7 @@ def get_canonical_document_type(doc_type: str, issuer_canonical: str) -> str:
     normalized = (
         normalized.replace("ă", "a")
         .replace("â", "a")
+        .replace("î", "i")
         .replace("ț", "t")
         .replace("ţ", "t")
         .replace("ş", "s")

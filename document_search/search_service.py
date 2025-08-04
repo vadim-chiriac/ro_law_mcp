@@ -69,6 +69,9 @@ class SearchService:
         :param issuer: The issuer of the document (e.g. 'guvernul')
         :return
         """
+        if (document_type == "lege"):
+            issuer = "Parlamentul"
+            
         return await self.doc_finder.find_exact_document(
             document_type=document_type, number=number, year=year, issuer=issuer
         )
