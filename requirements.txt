@@ -1,2 +1,3 @@
 zeep
-dotenv
+python-dotenv
+requests
