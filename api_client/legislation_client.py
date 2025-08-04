@@ -70,6 +70,7 @@ class LegislationClient:
         self, number: str, year: Optional[int] = None, max_results: int = 10
     ) -> List[LegislationDocument]:
         """Search legislation documents by number and optional year.
+        Note: Year filtering may return documents from nearby years if no exact matches exist.
 
         :param number: Document number to search for.
         :param year: Optional year to filter results.
@@ -133,6 +134,28 @@ class LegislationClient:
         :return: List of `LegislationDocument` matching the search model.
         """
         self._ensure_valid_token()
+        requested_size = search_model["RezultatePagina"]
+        
+        if requested_size <= 10:
+            return self._execute_page_search(search_model)
+            
+        all_results = []
+        pages_needed = (requested_size + 9) // 10 # Ceiling divison trick which Claude taught me :)
+        for page_index in range(pages_needed):  
+            page_search_model = search_model.copy()
+            page_search_model["NumarPagina"] = page_index
+            page_search_model["RezultatePagina"] = 10
+            
+            page_results = self._execute_page_search(page_search_model)
+            
+            all_results.extend(page_results)
+            
+            if len(page_results) < 10:
+                break
+        
+        return all_results[:requested_size]
+            
+    def _execute_page_search(self, search_model: dict) -> List[LegislationDocument]:
         try:
             results = self.client.service.Search(search_model, self.token)
             parsed_results = self._parse_search_results(results)
@@ -190,11 +213,23 @@ class LegislationClient:
         :param text: Search term to find within document content (full-text search)
         :param title: Search term to find within document titles
         :param number: Specific document number to search for
-        :param year: Filter results by year of issuance
+        :param year: Filter results by year of issuance. Note: API may return documents
+                    from nearby years if no exact matches exist for the specified year.
         :param page: Page number for pagination (0-based)
         :param page_size: Maximum number of results per page
         :return: Dictionary formatted for SOAP API search request
         """
+        if page < 0:
+            raise ValueError("Page number cannot be negative.")
+
+        if page_size <= 0:
+            raise ValueError("Page size must be positive.")
+
+        if page_size > 100:
+            raise ValueError("Page size cannot exceed 100")
+
+        if year < 1800:
+            raise ValueError("Year cannot be before 1800")
 
         return {
             "NumarPagina": page,

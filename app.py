@@ -12,8 +12,8 @@ load_dotenv()
 WSDL_URL = os.environ.get(
     "WSDL_URL", "https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl"
 )
-CONNECTION_TIMEOUT = int(os.environ.get("CONNECTION_TIMEOUT", "1"))
-READ_TIMEOUT = int(os.environ.get("READ_TIMEOUT", "1"))
+CONNECTION_TIMEOUT = int(os.environ.get("CONNECTION_TIMEOUT", "10"))
+READ_TIMEOUT = int(os.environ.get("READ_TIMEOUT", "30"))
 
 
 async def main():
@@ -31,10 +31,13 @@ async def main():
 
         # Temporary testing
         logger.info("Testing legislation client...")
-        results = await client.search_by_text("contract")
+        
+        results = await client.search_advanced(year=1800, page_size=24)
         logger.info(f"Found {len(results)} documents.")
-        # for r in results:
-        #     logger.info(f"Document title: {r.title}")
+        
+        for r in results:
+            logger.info(f"Document title: {r.title}")
+            logger.info(f"Document effective date.: {r.effective_date}")
 
     except Exception as e:
         logger.exception(f"Error starting application: {e}")
