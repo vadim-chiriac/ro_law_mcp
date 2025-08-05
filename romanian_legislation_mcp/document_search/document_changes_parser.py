@@ -152,6 +152,7 @@ class DocumentChangesParser:
             "SUSPENDATDE": "suspended",
             "REPUBLICAT": "republished",
             "INTRATINVIGOARE": "entered into force",
+            "RECTIFICATDE": "corrected"
         }
 
         return type_mapping.get(raw_upper, raw_type.lower())
