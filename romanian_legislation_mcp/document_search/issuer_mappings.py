@@ -41,6 +41,7 @@ ISSUER_MAPPINGS = {
     "agen?ia na?ionala pentru resurse minerale":"agentia nationala pentru resurse minerale",
     "comisia na?ionala pentru contrololul activita?ilor nucleare":"comisia nationala pentru contrololul activitatilor nucleare",
     "autoritatea na?ionala sanitara veterinara ?i pentru siguran?a alimentelor":"autoritatea nationala sanitara veterinara si pentru siguranta alimentelor",
+    "anpc": "autoritatea nationala pentru protectia consumatorilor",
     "autoritatea na?ionala pentru protec?ia consumatorilor": "autoritatea nationala pentru protectia consumatorilor",
     "autoritatea na?ionala de reglementare in domeniul energiei": "autoritatea nationala de reglementare in domeniul energiei",
     "consiliul na?ional al audiovizualului": "consiliul national al audiovizualului",

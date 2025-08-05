@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class SoapClient:
-    """Class responsible for SOAP 🧼 API connection."""
+    """Class responsible for 🧼 SOAP API connection."""
 
     def __init__(self, wsdl_url: str, connection_timeout: int, read_timeout: int):
         """Do not call this directly, use `create` class method instead."""
