@@ -25,12 +25,41 @@ def start_server():
     
     init_resources()
     
+    logger.info("Starting MCP server in STDIO mode...")
+    logger.info("Server will communicate via stdin/stdout for MCP protocol")
+    
+    try:
+        app.run()
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested")
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        raise
+
+
+async def start_server_async():
+    """Async version of the MCP server start"""
+    init_resources()
+    await app.run_stdio_async()
+
+
+def start_http_server():
+    """Starts the MCP server in HTTP mode for testing/debugging"""
+    
+    init_resources()
+    
     server_url = f"http://{HOSTNAME}:{PORT}"
     logger.info(f"MCP server starting on {server_url}")
     logger.info(f"MCP endpoint will be available at {server_url}/mcp")
     
-    asgi_app = app.streamable_http_app()
-    uvicorn.run(asgi_app, host=HOSTNAME, port=PORT)
+    try:
+        asgi_app = app.streamable_http_app()
+        uvicorn.run(asgi_app, host=HOSTNAME, port=PORT)
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested")
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        raise
 
 
 def init_resources():
@@ -49,6 +78,3 @@ def init_resources():
     logger.info("Search service succesfully started.")
 
     register_tools(app, search_service)
-
-if __name__ == "__main__":
-    start_server()
