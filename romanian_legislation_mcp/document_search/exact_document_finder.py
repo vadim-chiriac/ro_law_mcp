@@ -83,9 +83,9 @@ class ExactDocumentFinder:
         doc_type_canonical = get_canonical_document_type(document_type, issuer_canonical)
 
         if strategy == "standard":
-            return f"{doc_type_canonical} {number}/{year}"
-        elif strategy == "alternate":
             return f"{doc_type_canonical} {number} * * {year}"
+        elif strategy == "alternate":
+            return f"{doc_type_canonical} {number}/{year}"
         else:
             raise ValueError(f"Unknown strategy: {strategy}")
         
