@@ -7,19 +7,24 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger(__name__)
 
 
-class DocumentStatusParser:
-    """Class that tries to obtain the list of changes to legal document."""
+class DocumentChangesParser:
+    """Class that tries to obtain the list of changes to legal document.
+    Unfortunately, the SOAP API does not return the consolidated form of legal documents.
+    We can therefore try to get a list of changes made to the document to pass to clients, so
+    they know at least if a specific article or the document itself was changed/repelead/subject 
+    to other changes.
+    """
 
     def __init__(self, request_timeout: int = 10):
         self.request_timeout = request_timeout
         self.session = requests.Session()
 
-    def get_document_status(self, url: str) -> dict:
+    def get_document_changes(self, url: str) -> dict:
         """
         Fetch and parse document HTML to try to determine if it's repealed or in force.
 
-        :param url: The HTML URL of the legislation document
-        :return: `DocumentStatus` indicating if document is active, repealed, or unknown
+        :param url: The HTML URL of the legislation document.
+        :return: Dict containg the list of changes made to the legal document.
         """
 
         if not url:
@@ -27,14 +32,14 @@ class DocumentStatusParser:
 
         try:
             doc_id = url.split("/")[-1]
-            return self._parse_status(doc_id)
+            return self._parse_changes(doc_id)
 
         except Exception as e:
-            logger.warning(f"Failed to determine document status for url: {url}: {e}")
+            logger.warning(f"Failed to determine document changes for url: {url}: {e}")
             return {}
 
-    def _parse_status(self, doc_id: str) -> dict:
-        """Parse HTML content to determine document status"""
+    def _parse_changes(self, doc_id: str) -> dict:
+        """Parse HTML changes content to build structured data containing document changes."""
 
         try:
             actions_response = requests.post(
