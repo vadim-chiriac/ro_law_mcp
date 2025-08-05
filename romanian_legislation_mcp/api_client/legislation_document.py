@@ -2,6 +2,8 @@ from datetime import datetime
 from dataclasses import dataclass
 from typing import Optional
 
+from romanian_legislation_mcp.document_search.document_status_parser import DocumentStatus
+
 @dataclass
 class LegislationDocument:
     title: str
@@ -12,3 +14,4 @@ class LegislationDocument:
     text: str
     publication: Optional[str] = None
     url: Optional[str] = None
+    status: DocumentStatus = DocumentStatus.UNKNOWN

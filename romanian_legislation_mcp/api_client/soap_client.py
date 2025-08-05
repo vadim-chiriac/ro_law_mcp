@@ -6,6 +6,7 @@ import logging
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
 from romanian_legislation_mcp.api_client.utils import extract_field_safely, extract_date_safely
+from romanian_legislation_mcp.document_search.document_status_parser import DocumentStatusParser
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class SoapClient:
         self.client: Client = None
         self.token: str = None
         self.token_expires_at = None
+        self.status_parser: DocumentStatusParser = None
 
     @classmethod
     def create(
@@ -38,6 +40,7 @@ class SoapClient:
         instance = cls(wsdl_url, connection_timeout, read_timeout)
         try:
             instance.client = instance._create_soap_client()
+            instance.status_parser = DocumentStatusParser(request_timeout=connection_timeout)
         except Exception as e:
             raise ConnectionError(f"Failed to create SOAP client: {e}")
 
@@ -132,7 +135,7 @@ class SoapClient:
         """
         self._ensure_valid_token()
         try:
-            results = self.client.service.Search(search_model, self.token)
+            results = self.client.service.Search(search_model, self.token)                
             parsed_results = self._parse_search_results(results)
 
             return parsed_results
@@ -190,6 +193,14 @@ class SoapClient:
             logger.warning("Skipping record due to missing fields.")
             return None
 
+        # Try to determine if the document is repealed/in force
+        status = None
+        if url and self.status_parser:
+            try:
+                status = self.status_parser.get_document_status(url)
+            except Exception as e:
+                logger.warning(f"Failed to parse status for document {number}: {e}")
+
         parsed_result = LegislationDocument(
             title=title,
             number=number,
@@ -199,6 +210,7 @@ class SoapClient:
             text=text,
             publication=publication,
             url=url,
+            status=status,
         )
 
         return parsed_result
