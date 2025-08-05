@@ -116,6 +116,8 @@ class ExactDocumentFinder:
             number = result.number
             # Sometimes, the API returns "0" as the document number for those documents which are 
             # identified only by date. In this case, we skip the number check.
+            # This seems to the case for document identified by date only (e.g. Norma din 01/01/2000),
+            # but clients might query for this as Norma 1/2000.
             if not self._compare_no(number, expected_no) and number != "0":
                 continue
 

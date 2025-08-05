@@ -8,7 +8,6 @@ from romanian_legislation_mcp.api_client.legislation_document import Legislation
 from romanian_legislation_mcp.api_client.utils import extract_field_safely, extract_date_safely
 from romanian_legislation_mcp.document_search.document_status_parser import DocumentStatusParser
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
