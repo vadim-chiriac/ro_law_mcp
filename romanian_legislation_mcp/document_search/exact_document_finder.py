@@ -85,7 +85,7 @@ class ExactDocumentFinder:
         if strategy == "standard":
             return f"{doc_type_canonical} {number}/{year}"
         elif strategy == "alternate":
-            return f"{doc_type_canonical} din {number} * {year}"
+            return f"{doc_type_canonical} {number} * * {year}"
         else:
             raise ValueError(f"Unknown strategy: {strategy}")
         
