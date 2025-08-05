@@ -19,7 +19,7 @@ class SearchService:
         self.client = soap_client
         self.doc_finder = ExactDocumentFinder(soap_client)
 
-    async def search_by_text(
+    async def search_content(
         self, query: str, max_results: int = 10
     ) -> List[LegislationDocument]:
         """Search legislation documents by full-text query.
@@ -31,7 +31,7 @@ class SearchService:
 
         return await self.client.search_raw(text=query, page_size=max_results)
 
-    async def search_by_title(
+    async def search_title(
         self, title: str, max_results: int = 10
     ) -> List[LegislationDocument]:
         """Search legislation documents by title.
@@ -43,7 +43,7 @@ class SearchService:
 
         return await self.client.search_raw(title=title, page_size=max_results)
 
-    async def search_by_number(
+    async def search_number(
         self, number: str, year: Optional[int] = None, max_results: int = 10
     ) -> List[LegislationDocument]:
         """Search legislation documents by number and optional year.

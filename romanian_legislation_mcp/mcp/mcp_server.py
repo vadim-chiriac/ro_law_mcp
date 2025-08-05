@@ -1,12 +1,12 @@
 from mcp.server.fastmcp import FastMCP
+from dotenv import load_dotenv
 import uvicorn
 import logging
-from dotenv import load_dotenv
 import os
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.document_search.search_service import SearchService
-
+from romanian_legislation_mcp.mcp.tools import register_tools
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -20,8 +20,6 @@ READ_TIMEOUT = int(os.environ.get("READ_TIMEOUT", "30"))
 
 app = FastMCP("Romanian Legislation MCP server")
 
-search_service = None
-
 def start_server():
     """Initializes and starts the MCP server"""
     
@@ -29,15 +27,15 @@ def start_server():
     
     server_url = f"http://{HOSTNAME}:{PORT}"
     logger.info(f"MCP server starting on {server_url}")
-    logger.info(f"MCP endpoint will be available at {server_url}/sse")
-
-    uvicorn.run(app, host=HOSTNAME, port=PORT)
+    logger.info(f"MCP endpoint will be available at {server_url}/mcp")
+    
+    asgi_app = app.streamable_http_app()
+    uvicorn.run(asgi_app, host=HOSTNAME, port=PORT)
 
 
 def init_resources():
     """Initializes underlying resources needed for SOAP API connection"""
-    global search_service
-    
+        
     logger.info("Initializing SOAP client...")
     client = SoapClient.create(
         wsdl_url=WSDL_URL,
@@ -50,6 +48,7 @@ def init_resources():
     search_service = SearchService(soap_client=client)
     logger.info("Search service succesfully started.")
 
+    register_tools(app, search_service)
 
 if __name__ == "__main__":
     start_server()

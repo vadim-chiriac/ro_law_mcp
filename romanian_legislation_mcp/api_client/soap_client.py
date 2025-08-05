@@ -231,10 +231,7 @@ class SoapClient:
 
         if page_size > 100:
             raise ValueError("Page size cannot exceed 100")
-
-        if year and year < 1800:
-            raise ValueError("Year cannot be before 1800")
-
+        
         return {
             "NumarPagina": page,
             "RezultatePagina": page_size,
