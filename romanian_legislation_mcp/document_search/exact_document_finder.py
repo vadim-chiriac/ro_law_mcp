@@ -1,9 +1,10 @@
 from typing import List, Optional
-from api_client.soap_client import SoapClient
-from api_client.legislation_document import LegislationDocument
-from document_search.issuer_mappings import get_canonical_issuer
-from document_search.document_type_mappings import get_canonical_document_type
 import logging
+
+from romanian_legislation_mcp.api_client.soap_client import SoapClient
+from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
+from romanian_legislation_mcp.document_search.issuer_mappings import get_canonical_issuer
+from romanian_legislation_mcp.document_search.document_type_mappings import get_canonical_document_type
 
 logger = logging.getLogger(__name__)
 

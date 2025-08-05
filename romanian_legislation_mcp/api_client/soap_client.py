@@ -3,9 +3,9 @@ from datetime import datetime, timedelta, timezone
 from zeep import Client
 from typing import List, Optional
 import logging
-from api_client.legislation_document import LegislationDocument
-from api_client.utils import extract_field_safely, extract_date_safely
 
+from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
+from romanian_legislation_mcp.api_client.utils import extract_field_safely, extract_date_safely
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

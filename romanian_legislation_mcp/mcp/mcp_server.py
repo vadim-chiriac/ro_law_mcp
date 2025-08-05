@@ -4,8 +4,8 @@ import logging
 from dotenv import load_dotenv
 import os
 
-from api_client.soap_client import SoapClient
-from document_search.search_service import SearchService
+from romanian_legislation_mcp.api_client.soap_client import SoapClient
+from romanian_legislation_mcp.document_search.search_service import SearchService
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,9 @@
 from typing import List, Optional
-from api_client.soap_client import SoapClient
-from api_client.legislation_document import LegislationDocument
 import logging
 
-from document_search.exact_document_finder import ExactDocumentFinder
+from romanian_legislation_mcp.api_client.soap_client import SoapClient
+from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
+from romanian_legislation_mcp.document_search.exact_document_finder import ExactDocumentFinder
 
 logger = logging.getLogger(__name__)
 
