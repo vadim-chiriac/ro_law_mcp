@@ -25,7 +25,7 @@ class SoapClient:
         self.token_expires_at = None
 
     @classmethod
-    async def create(
+    def create(
         cls, wsdl_url: str, connection_timeout: int = 10, read_timeout: int = 30
     ) -> "SoapClient":
         """Factory method for instance creation

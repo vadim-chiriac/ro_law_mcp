@@ -1,3 +1,5 @@
 zeep
 python-dotenv
 requests
+mcp
+uvicorn
