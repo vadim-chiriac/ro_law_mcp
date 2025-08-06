@@ -44,7 +44,7 @@ async def start_server_async():
 
 
 def start_http_server():
-    """Starts the MCP server in HTTP mode for testing/debugging"""
+    """Starts the MCP server in HTTP mode"""
     
     init_resources()
     

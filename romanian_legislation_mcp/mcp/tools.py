@@ -7,6 +7,11 @@ from romanian_legislation_mcp.document_search.search_service import SearchServic
 
 logger = logging.getLogger(__name__)
 
+# Size limits for Claude Desktop
+MAX_RESPONSE_SIZE_BYTES = 950 * 1024 
+MAX_TEXT_LENGTH_CHARS = 10000 
+TRUNCATION_SUFFIX = "\n\n[... Content truncated due to size limits. Use document_search for the full document if you need the complete text ...]"
+
 search_service = None
 
 
@@ -148,7 +153,10 @@ def register_document_search(app):
             if not result:
                 return {"results": [], "total": 0}
 
-            return {"results": [result.__dict__], "total": 1}
+            response = {"results": [result.__dict__], "total": 1}
+            response = _manage_response_size(response)
+
+            return response
         except Exception as e:
             return {"results": [], "error": str(e)}
 
@@ -164,10 +172,10 @@ def register_guidance_tool(app):
         Use this tool ONLY when:
         - User wants to find ONE specific document (not explore a topic)
         - You're missing one or more required details: document type, number, year, or issuer
-        
+
         Do NOT use this tool for topic exploration or when you already have all required details
         for document_search (type, number, year, issuer).
-        
+
         Do NOT use this tool is you have the type, number and year, if the type (in Romanian) is "Lege"
         or "Ordonanta de Urgenta"/"OUG". In this case, use the document_search tool, as the issuer
         for "Lege" is always "Parlamentul", and the issuer for "OUG" is always "Guvernul".
@@ -186,7 +194,7 @@ def register_guidance_tool(app):
                 "document_type": "Examples: 'lege', 'ordonanta de urgenta', 'ordonanta', 'cod'",
                 "number": "The document number (e.g., 197)",
                 "year": "The year the document was issued",
-                "issuer": "For laws: always 'Parlamentul' | For emergency ordinances: always 'Guvernul' | For others: varies"
+                "issuer": "For laws: always 'Parlamentul' | For emergency ordinances: always 'Guvernul' | For others: varies",
             },
             "identification_steps": [
                 {
@@ -197,40 +205,40 @@ def register_guidance_tool(app):
                     - Any numbers mentioned?
                     - Any years mentioned?
                     - If it's a law → issuer is 'Parlamentul'
-                    - If it's emergency ordinance → issuer is 'Guvernul'"""
+                    - If it's emergency ordinance → issuer is 'Guvernul'""",
                 },
                 {
                     "step": 2,
                     "action": "Web search for missing details",
                     "searches": [
-                        f"Romania \"{description}\" law number year",
-                        f"\"{description}\" Romanian legislation number",
-                        f"Legea \"{description}\" România număr an",
-                        f"\"{description}\" site:legislatie.just.ro"
+                        f'Romania "{description}" law number year',
+                        f'"{description}" Romanian legislation number',
+                        f'Legea "{description}" România număr an',
+                        f'"{description}" site:legislatie.just.ro',
                     ],
-                    "instruction": "Search specifically for the EXACT law number and year"
+                    "instruction": "Search specifically for the EXACT law number and year",
                 },
                 {
                     "step": 3,
                     "action": "Use title_search if web search fails",
-                    "instruction": f"If web search doesn't give clear results, try title_search('{description}') to find candidate documents and extract their details"
+                    "instruction": f"If web search doesn't give clear results, try title_search('{description}') to find candidate documents and extract their details",
                 },
                 {
                     "step": 4,
                     "action": "Use document_search with found details",
                     "instruction": "Once you have all details, use document_search - this is the MOST RELIABLE method",
-                    "example": "document_search(document_type='lege', number=197, year=2018, issuer='Parlamentul')"
-                }
+                    "example": "document_search(document_type='lege', number=197, year=2018, issuer='Parlamentul')",
+                },
             ],
             "quick_reference": {
                 "common_types": {
                     "Law": "document_type='lege', issuer='Parlamentul'",
                     "Emergency Ordinance": "document_type='ordonanta de urgenta', issuer='Guvernul'",
                     "Ordinance": "document_type='ordonanta', issuer='Guvernul'",
-                    "Code": "document_type='cod', issuer=(varies)"
+                    "Code": "document_type='cod', issuer=(varies)",
                 },
-                "success_pattern": f"'{description}' → Web search → Find exact details → document_search()"
-            }
+                "success_pattern": f"'{description}' → Web search → Find exact details → document_search()",
+            },
         }
 
         return json.dumps(guidance, indent=2, ensure_ascii=False)
@@ -243,48 +251,46 @@ def register_issuer_mapping_tool(app):
     async def get_correct_issuer(issuer_description: str) -> str:
         """
         Maps various issuer descriptions to the correct legal terms for document_search.
-        
+
         Use this tool when you need to find the exact issuer name for document_search from
         a user's description like "prime minister", "consumer protection authority", "tax authority" etc.
-        If in doubt, use this tool rather than not, as users are not familiar with legal terminology, but the 
+        If in doubt, use this tool rather than not, as users are not familiar with legal terminology, but the
         SOAP API search is rather strict.
 
         Args:
-            issuer_description: Description of the issuer in English or Romanian 
+            issuer_description: Description of the issuer in English or Romanian
             (e.g., "prime minister", "guvern", "anaf", "finance ministry")
 
         Returns:
             JSON with the correct issuer term and alternatives, or suggestions if no exact match
         """
-        
+
         normalized = issuer_description.strip().lower()
         normalized = (
             normalized.replace("ă", "a")
-            .replace("â", "a") 
+            .replace("â", "a")
             .replace("î", "i")
             .replace("ț", "t")
             .replace("ţ", "t")
             .replace("ş", "s")
             .replace("ș", "s")
         )
-        
+
         issuer_mappings = {
             # Government variations
             "government": "Guvernul",
-            "guvern": "Guvernul", 
+            "guvern": "Guvernul",
             "guvernul": "Guvernul",
             "guvernul romaniei": "Guvernul",
             "government of romania": "Guvernul",
             "romanian government": "Guvernul",
-            
             # Parliament variations
             "parliament": "Parlamentul",
             "parlamentul": "Parlamentul",
-            "parlament": "Parlamentul", 
+            "parlament": "Parlamentul",
             "parlamentul romaniei": "Parlamentul",
             "parliament of romania": "Parlamentul",
             "romanian parliament": "Parlamentul",
-            
             # Prime Minister variations
             "prime minister": "Prim-ministrul",
             "prim ministru": "Prim-ministrul",
@@ -292,14 +298,12 @@ def register_issuer_mapping_tool(app):
             "prim-ministru": "Prim-ministrul",
             "prim-ministrul": "Prim-ministrul",
             "pm": "Prim-ministrul",
-            
             # President variations
             "president": "Presedintele Romaniei",
             "presedinte": "Presedintele Romaniei",
-            "presedintele": "Presedintele Romaniei", 
+            "presedintele": "Presedintele Romaniei",
             "presedintele romaniei": "Presedintele Romaniei",
             "president of romania": "Presedintele Romaniei",
-            
             # Ministries (common ones)
             "ministry of finance": "Ministerul Finantelor",
             "ministerul finantelor": "Ministerul Finantelor",
@@ -311,18 +315,15 @@ def register_issuer_mapping_tool(app):
             "ministerul afacerilor interne": "Ministerul Afacerilor Interne",
             "ministry of justice": "Ministerul Justitiei",
             "ministerul justitiei": "Ministerul Justitiei",
-            
             # Agencies and authorities
             "anaf": "Agentia Nationala de Administrare Fiscala",
             "tax authority": "Agentia Nationala de Administrare Fiscala",
             "national bank": "Banca Nationala a Romaniei",
             "bnr": "Banca Nationala a Romaniei",
             "banca nationala": "Banca Nationala a Romaniei",
-            
             # Consumer protection
             "anpc": "Autoritatea Nationala pentru Protectia Consumatorilor",
             "consumer protection": "Autoritatea Nationala pentru Protectia Consumatorilor",
-            
             # Courts
             "constitutional court": "Curtea Constitutionala",
             "curtea constitutionala": "Curtea Constitutionala",
@@ -330,47 +331,61 @@ def register_issuer_mapping_tool(app):
             "supreme court": "Inalta Curte de Casatie si Justitie",
             "curtea suprema": "Inalta Curte de Casatie si Justitie",
             "inalta curte": "Inalta Curte de Casatie si Justitie",
-            "iccj": "Inalta Curte de Casatie si Justitie"
+            "iccj": "Inalta Curte de Casatie si Justitie",
         }
-        
+
         if normalized in issuer_mappings:
             correct_issuer = issuer_mappings[normalized]
-            return json.dumps({
-                "input": issuer_description,
-                "correct_issuer": correct_issuer,
-                "match_type": "exact",
-                "confidence": "high"
-            }, ensure_ascii=False, indent=2)
-        
+            return json.dumps(
+                {
+                    "input": issuer_description,
+                    "correct_issuer": correct_issuer,
+                    "match_type": "exact",
+                    "confidence": "high",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+
         partial_matches = []
         for key, value in issuer_mappings.items():
             if normalized in key or key in normalized:
-                partial_matches.append({"input_variation": key, "correct_issuer": value})
-        
+                partial_matches.append(
+                    {"input_variation": key, "correct_issuer": value}
+                )
+
         if partial_matches:
-            return json.dumps({
-                "input": issuer_description,
-                "match_type": "partial",
-                "confidence": "medium",
-                "suggestions": partial_matches[:5]  # Limit to top 5
-            }, ensure_ascii=False, indent=2)
-        
+            return json.dumps(
+                {
+                    "input": issuer_description,
+                    "match_type": "partial",
+                    "confidence": "medium",
+                    "suggestions": partial_matches[:5],  # Limit to top 5
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+
         common_issuers = [
             {"description": "Government/Executive", "issuer": "Guvernul"},
-            {"description": "Parliament/Legislative", "issuer": "Parlamentul"}, 
+            {"description": "Parliament/Legislative", "issuer": "Parlamentul"},
             {"description": "Prime Minister", "issuer": "Prim-ministrul"},
             {"description": "President", "issuer": "Presedintele Romaniei"},
             {"description": "Ministry of Finance", "issuer": "Ministerul Finantelor"},
-            {"description": "National Bank", "issuer": "Banca Nationala a Romaniei"}
+            {"description": "National Bank", "issuer": "Banca Nationala a Romaniei"},
         ]
-        
-        return json.dumps({
-            "input": issuer_description,
-            "match_type": "none",
-            "confidence": "low",
-            "message": "No direct match found. Try web search or use title_search to find the document and identify the correct issuer.",
-            "common_issuers": common_issuers
-        }, ensure_ascii=False, indent=2)
+
+        return json.dumps(
+            {
+                "input": issuer_description,
+                "match_type": "none",
+                "confidence": "low",
+                "message": "No direct match found. Try web search or use title_search to find the document and identify the correct issuer.",
+                "common_issuers": common_issuers,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
 
 
 async def _execute_simple_search(
@@ -407,7 +422,102 @@ async def _execute_simple_search(
             result_dict = r.__dict__
             dict_results.append(result_dict)
 
-        return {"results": dict_results, "total": len(dict_results)}
+        response = {"results": dict_results, "total": len(dict_results)}
+        response = _manage_response_size(response)
+
+        return response
+
     except Exception as e:
         logger.error(f"{operation_name} MCP tool failed: {e}")
         return {"results": [], "error": str(e)}
+
+
+def _calculate_response_size(response: dict) -> int:
+    """Calculate the byte size of a JSON response."""
+    try:
+        return len(json.dumps(response, ensure_ascii=False).encode("utf-8"))
+    except Exception as e:
+        logger.warning(f"Failed to calculate response size: {e}")
+        return 0
+
+
+def _truncate_document_content(results: list) -> tuple[list, bool]:
+    """Truncate document text content to fit within size limits."""
+
+    was_truncated = False
+
+    for result in results:
+        if isinstance(result, dict) and "text" in result:
+            text = result.get("text", "")
+            if len(text) > MAX_TEXT_LENGTH_CHARS:
+                result["text"] = text[:MAX_TEXT_LENGTH_CHARS] + TRUNCATION_SUFFIX
+                result["content_truncated"] = True
+                was_truncated = True
+
+    return results, was_truncated
+
+
+def _manage_response_size(response: dict) -> dict:
+    """Manage response size by truncating content if needed."""
+
+    current_size = _calculate_response_size(response)
+
+    if current_size <= MAX_RESPONSE_SIZE_BYTES:
+        return response
+
+    logger.info(
+        f"Response size ({current_size} bytes) exceeds limit ({MAX_RESPONSE_SIZE_BYTES} bytes), truncating content..."
+    )
+
+    if "results" in response and isinstance(response["results"], list):
+        truncated_results, was_truncated = _truncate_document_content(
+            response["results"]
+        )
+        response["results"] = truncated_results
+
+        if was_truncated:
+            response["size_management"] = {
+                "content_truncated": True,
+                "reason": "Response size exceeded Claude Desktop limits",
+                "original_size_bytes": current_size,
+                "note": "Use document_search for specific documents to get full content",
+            }
+
+        new_size = _calculate_response_size(response)
+        logger.info(f"After truncation: {new_size} bytes")
+
+        if new_size > MAX_RESPONSE_SIZE_BYTES and len(response["results"]) > 1:
+            logger.info("Still too large, reducing number of results...")
+
+            # Binary search to find maximum number of results that fit, thanks Claude for this trick 
+            left, right = 1, len(response["results"])
+            best_count = 1
+
+            while left <= right:
+                mid = (left + right) // 2
+                test_response = response.copy()
+                test_response["results"] = response["results"][:mid]
+                test_response["total"] = mid
+
+                test_size = _calculate_response_size(test_response)
+
+                if test_size <= MAX_RESPONSE_SIZE_BYTES:
+                    best_count = mid
+                    left = mid + 1
+                else:
+                    right = mid - 1
+
+            original_count = len(response["results"])
+            response["results"] = response["results"][:best_count]
+            response["total"] = best_count
+            response["size_management"]["results_reduced"] = True
+            response["size_management"]["original_result_count"] = original_count
+            response["size_management"]["reduced_to_count"] = best_count
+
+            final_size = _calculate_response_size(response)
+            response["size_management"]["final_size_bytes"] = final_size
+            logger.info(
+                f"Reduced to {best_count} results, final size: {final_size} bytes"
+            )
+
+    return response

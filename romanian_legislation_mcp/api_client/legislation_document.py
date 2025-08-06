@@ -8,7 +8,7 @@ class LegislationDocument:
     number: str
     document_type: str
     issuer: str
-    effective_date: datetime
+    effective_date: str
     text: str
     changes: dict
     publication: Optional[str] = None

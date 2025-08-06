@@ -23,7 +23,7 @@ def extract_field_safely(record, field_name: str, required: bool = True) -> Opti
         logger.warning(f"Error extracting field: {field_name}.")
         return None
         
-def extract_date_safely(date_string: str) -> Optional[datetime]:
+def extract_date_safely(date_string: str) -> Optional[str]:
     """Parse a date string with fallback handling.
     
     :param date_string: The date string to parse.
@@ -33,7 +33,7 @@ def extract_date_safely(date_string: str) -> Optional[datetime]:
         return None
     
     try:
-        return datetime.strptime(date_string, "%Y-%m-%d")
+        return str(datetime.strptime(date_string, "%Y-%m-%d"))
     except Exception as e:
         logger.warning(f"Error extracting date from string {date_string}: {e}.")
         return None
