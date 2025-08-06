@@ -4,7 +4,9 @@ ISSUER_MAPPINGS = {
     "banca nationala": "banca nationala a romaniei",
     "banca na?ionala a romaniei": "banca nationala a romaniei",
     
-    # ===== GOVERNMENT & PARLIAMENT =====
+    # ===== PRESIDENT, GOVERNMENT & PARLIAMENT =====
+    "pre?edintele romaniei": "presedintele romaniei",
+    "președintele româniei": "presedintele romaniei",
     "guvern": "guvernul",
     "guvernul": "guvernul",
     "guvernul romaniei": "guvernul",
@@ -71,6 +73,7 @@ def get_canonical_issuer(issuer: str) -> str:
         .replace("ț", "t")
         .replace("ţ", "t")
         .replace("ş", "s")
+        .replace("ș", "s")
     )
 
     return ISSUER_MAPPINGS.get(normalized, normalized)

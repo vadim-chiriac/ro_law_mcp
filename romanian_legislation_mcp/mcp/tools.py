@@ -21,6 +21,7 @@ def register_tools(app: FastMCP, service: SearchService):
     register_number_search(app)
     register_document_search(app)
     register_guidance_tool(app)
+    register_issuer_mapping_tool(app)
 
     logger.info("All MCP tools registered successfully.")
 
@@ -233,6 +234,143 @@ def register_guidance_tool(app):
         }
 
         return json.dumps(guidance, indent=2, ensure_ascii=False)
+
+
+def register_issuer_mapping_tool(app):
+    """Register the issuer mapping tool."""
+
+    @app.tool()
+    async def get_correct_issuer(issuer_description: str) -> str:
+        """
+        Maps various issuer descriptions to the correct legal terms for document_search.
+        
+        Use this tool when you need to find the exact issuer name for document_search from
+        a user's description like "prime minister", "consumer protection authority", "tax authority" etc.
+        If in doubt, use this tool rather than not, as users are not familiar with legal terminology, but the 
+        SOAP API search is rather strict.
+
+        Args:
+            issuer_description: Description of the issuer in English or Romanian 
+            (e.g., "prime minister", "guvern", "anaf", "finance ministry")
+
+        Returns:
+            JSON with the correct issuer term and alternatives, or suggestions if no exact match
+        """
+        
+        normalized = issuer_description.strip().lower()
+        normalized = (
+            normalized.replace("ă", "a")
+            .replace("â", "a") 
+            .replace("î", "i")
+            .replace("ț", "t")
+            .replace("ţ", "t")
+            .replace("ş", "s")
+            .replace("ș", "s")
+        )
+        
+        issuer_mappings = {
+            # Government variations
+            "government": "Guvernul",
+            "guvern": "Guvernul", 
+            "guvernul": "Guvernul",
+            "guvernul romaniei": "Guvernul",
+            "government of romania": "Guvernul",
+            "romanian government": "Guvernul",
+            
+            # Parliament variations
+            "parliament": "Parlamentul",
+            "parlamentul": "Parlamentul",
+            "parlament": "Parlamentul", 
+            "parlamentul romaniei": "Parlamentul",
+            "parliament of romania": "Parlamentul",
+            "romanian parliament": "Parlamentul",
+            
+            # Prime Minister variations
+            "prime minister": "Prim-ministrul",
+            "prim ministru": "Prim-ministrul",
+            "primul ministru": "Prim-ministrul",
+            "prim-ministru": "Prim-ministrul",
+            "prim-ministrul": "Prim-ministrul",
+            "pm": "Prim-ministrul",
+            
+            # President variations
+            "president": "Presedintele Romaniei",
+            "presedinte": "Presedintele Romaniei",
+            "presedintele": "Presedintele Romaniei", 
+            "presedintele romaniei": "Presedintele Romaniei",
+            "president of romania": "Presedintele Romaniei",
+            
+            # Ministries (common ones)
+            "ministry of finance": "Ministerul Finantelor",
+            "ministerul finantelor": "Ministerul Finantelor",
+            "ministry of health": "Ministerul Sanatatii",
+            "ministerul sanatatii": "Ministerul Sanatatii",
+            "ministry of education": "Ministerul Educatiei",
+            "ministerul educatiei": "Ministerul Educatiei",
+            "ministry of interior": "Ministerul Afacerilor Interne",
+            "ministerul afacerilor interne": "Ministerul Afacerilor Interne",
+            "ministry of justice": "Ministerul Justitiei",
+            "ministerul justitiei": "Ministerul Justitiei",
+            
+            # Agencies and authorities
+            "anaf": "Agentia Nationala de Administrare Fiscala",
+            "tax authority": "Agentia Nationala de Administrare Fiscala",
+            "national bank": "Banca Nationala a Romaniei",
+            "bnr": "Banca Nationala a Romaniei",
+            "banca nationala": "Banca Nationala a Romaniei",
+            
+            # Consumer protection
+            "anpc": "Autoritatea Nationala pentru Protectia Consumatorilor",
+            "consumer protection": "Autoritatea Nationala pentru Protectia Consumatorilor",
+            
+            # Courts
+            "constitutional court": "Curtea Constitutionala",
+            "curtea constitutionala": "Curtea Constitutionala",
+            "ccr": "Curtea Constitutionala",
+            "supreme court": "Inalta Curte de Casatie si Justitie",
+            "curtea suprema": "Inalta Curte de Casatie si Justitie",
+            "inalta curte": "Inalta Curte de Casatie si Justitie",
+            "iccj": "Inalta Curte de Casatie si Justitie"
+        }
+        
+        if normalized in issuer_mappings:
+            correct_issuer = issuer_mappings[normalized]
+            return json.dumps({
+                "input": issuer_description,
+                "correct_issuer": correct_issuer,
+                "match_type": "exact",
+                "confidence": "high"
+            }, ensure_ascii=False, indent=2)
+        
+        partial_matches = []
+        for key, value in issuer_mappings.items():
+            if normalized in key or key in normalized:
+                partial_matches.append({"input_variation": key, "correct_issuer": value})
+        
+        if partial_matches:
+            return json.dumps({
+                "input": issuer_description,
+                "match_type": "partial",
+                "confidence": "medium",
+                "suggestions": partial_matches[:5]  # Limit to top 5
+            }, ensure_ascii=False, indent=2)
+        
+        common_issuers = [
+            {"description": "Government/Executive", "issuer": "Guvernul"},
+            {"description": "Parliament/Legislative", "issuer": "Parlamentul"}, 
+            {"description": "Prime Minister", "issuer": "Prim-ministrul"},
+            {"description": "President", "issuer": "Presedintele Romaniei"},
+            {"description": "Ministry of Finance", "issuer": "Ministerul Finantelor"},
+            {"description": "National Bank", "issuer": "Banca Nationala a Romaniei"}
+        ]
+        
+        return json.dumps({
+            "input": issuer_description,
+            "match_type": "none",
+            "confidence": "low",
+            "message": "No direct match found. Try web search or use title_search to find the document and identify the correct issuer.",
+            "common_issuers": common_issuers
+        }, ensure_ascii=False, indent=2)
 
 
 async def _execute_simple_search(

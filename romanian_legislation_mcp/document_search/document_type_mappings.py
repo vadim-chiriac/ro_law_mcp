@@ -30,6 +30,7 @@ def get_canonical_document_type(doc_type: str, issuer_canonical: str) -> str:
         .replace("ț", "t")
         .replace("ţ", "t")
         .replace("ş", "s")
+        .replace("ș", "s")
     )
 
     context_key = (normalized, issuer_canonical)
