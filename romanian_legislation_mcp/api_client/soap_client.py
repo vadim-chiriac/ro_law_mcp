@@ -160,8 +160,7 @@ class SoapClient:
         :return: List of parsed results.
         """
         if not raw_results or not isinstance(raw_results, (list, tuple)):
-            # A page fail might indicate a system error (as opposed to a malformed single record, so fail the entire search)
-            raise ConnectionError("API returned invalid or empty response structure")
+            return []
 
         parsed_results = []
         for record in raw_results:
