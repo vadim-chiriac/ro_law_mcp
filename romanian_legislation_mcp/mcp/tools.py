@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
@@ -19,6 +20,7 @@ def register_tools(app: FastMCP, service: SearchService):
     register_title_search(app)
     register_number_search(app)
     register_document_search(app)
+    register_search_guidance(app)
 
     logger.info("All MCP tools registered successfully.")
 
@@ -53,8 +55,9 @@ def register_content_search(app):
     """Register text search tool."""
 
     @app.tool()
-    async def search_content(query: str, max_results: Optional[int] = None) -> dict:
-        """Search contents of legislation documents.
+    async def content_search(query: str, max_results: Optional[int] = None) -> dict:
+        """Search contents of legislation documents. Do not use if user is looking for a specific document.
+        Use document_search in this case.
 
         Args:
             query: Search query
@@ -71,7 +74,8 @@ def register_title_search(app):
 
     @app.tool()
     async def title_search(query: str, max_results: Optional[int] = None) -> dict:
-        """Search title of legislation documents.
+        """Search title of legislation documents. Do not use if user is looking for a specific document.
+        Use document_search in this case.
 
         Args:
             query: Search query
@@ -88,7 +92,8 @@ def register_number_search(app):
 
     @app.tool()
     async def number_search(query: str, max_results: Optional[int] = None) -> dict:
-        """Search the identification number of legislation documents.
+        """Search the identification number of legislation documents. Do not use if user is looking for a specific document.
+        Use document_search in this case.
 
         Args:
             query: Search query
@@ -145,6 +150,144 @@ def register_document_search(app):
             return {"results": [result.__dict__], "total": 1}
         except Exception as e:
             return {"results": [], "error": str(e)}
+
+
+def register_search_guidance(app):
+    """Register the search guidance tool."""
+
+    @app.tool()
+    async def search_guidance(description: str) -> str:
+        """
+        Provides step-by-step guidance for identifying a specific document from a generic description.
+
+        This tool helps when you have a generic reference like "Romanian Mountain Law" and need to
+        find the exact legal document. It guides you through a process using your own LLM capabilities
+        and web search to identify the precise document.
+
+        Args:
+            description: Generic description of the document (e.g., "Romanian Mountain Law", "Corporate Tax Code")
+
+        Returns:
+            Structured guidance with specific steps and search queries to identify the document
+        """
+
+        guidance = {
+            "description_received": description,
+            "search_strategy_decision": {
+                "instruction": "First, determine your search intent:",
+                "options": {
+                    "specific_document": {
+                        "when_to_use": "User wants to find ONE specific document",
+                        "indicators": [
+                            "mentions specific law name",
+                            "references to 'the law about X'",
+                            "needs full text of specific document",
+                        ],
+                        "tools_to_use": [
+                            "document_search",
+                            "title_search as helper",
+                            "web search for identification",
+                        ],
+                    },
+                    "explore_topic": {
+                        "when_to_use": "User wants to explore what documents exist about a topic/subject/issuer",
+                        "indicators": [
+                            "wants to see 'all laws about X'",
+                            "research on topic",
+                            "what documents mention Y",
+                        ],
+                        "tools_to_use": ["content_search", "title_search"],
+                    },
+                },
+            },
+            "workflow_for_specific_document": {
+                "note": "Use this workflow when looking for ONE specific document",
+                "steps": [
+                    {
+                        "step": 1,
+                        "action": "Check if you already have specifics",
+                        "instruction": f"""From '{description}', check if you have:
+                        - Document type (law/emergency ordinance/ordinance/code)
+                        - Number (e.g., 197)
+                        - Year (e.g., 2018)
+                        - Issuer (Not need for laws, always the Parliament (search term: "Parlamentul") 
+                        and for Emergency Ordinances, always the Government (search term: Guvernul"))
+                        
+                        If YES → Go directly to step 4 (document_search)
+                        If NO → Continue to step 2""",
+                    },
+                    {
+                        "step": 2,
+                        "action": "Web search for exact identification",
+                        "suggested_queries": [
+                            f"Romania {description} law number year",
+                            f"{description} Romanian legislation official name",
+                            f"Legea {description} România număr an",
+                            f"{description} site:legislatie.just.ro",
+                        ],
+                        "instruction": "Use web search to find the official name, law number, year, and type",
+                    },
+                    {
+                        "step": 3,
+                        "action": "Try title_search as backup",
+                        "instruction": "If web search didn't give clear results, use title_search with key terms from the description to find candidate documents",
+                    },
+                    {
+                        "step": 4,
+                        "action": "Use document_search with exact details",
+                        "instruction": """Once you have specifics, use document_search with:
+                        - document_type: 'lege' (for laws), 'oug' (for emergency ordinances), etc.
+                        - number: the law number
+                        - year: the year issued
+                        - issuer: 'Parlamentul' (for laws), 'Guvernul' (for emergency ordinances)
+                        
+                        This is the MOST RELIABLE method when you have exact details.""",
+                    },
+                ],
+            },
+            "workflow_for_topic_exploration": {
+                "note": "Use this workflow when exploring what documents exist about a topic",
+                "steps": [
+                    {
+                        "step": 1,
+                        "action": "Use content_search",
+                        "instruction": f"Search for '{description}' using content_search to find documents that mention this topic",
+                    },
+                    {
+                        "step": 2,
+                        "action": "Use title_search",
+                        "instruction": f"Search for '{description}' using title_search to find documents with this topic in their title",
+                    },
+                    {
+                        "step": 3,
+                        "action": "Review and refine",
+                        "instruction": "Review results and try different keywords if needed. The SOAP API search is not very reliable, so try multiple keyword variations.",
+                    },
+                ],
+            },
+            "important_notes": {
+                "document_search_reliability": "document_search is the MOST RELIABLE tool when you have exact document details (type, number, year, issuer)",
+                "soap_api_limitations": "title_search and content_search use the underlying SOAP API which is not very reliable - use them for exploration, not for finding specific documents",
+                "default_issuers": {
+                    "laws": "Always use 'Parlamentul' as issuer for laws (Lege)",
+                    "emergency_ordinances": "Always use 'Guvernul' as issuer for emergency ordinances (Ordonanță de Urgență/OUG)",
+                },
+            },
+            "example_workflows": {
+                "specific_document_example": f"For '{description}' → Web search → Find 'Law 197/2018' → document_search(document_type='lege', number=197, year=2018, issuer='Parlamentul')",
+                "topic_exploration_example": f"For 'environmental protection laws' → content_search('environmental protection') + title_search('environment')",
+            },
+            "romanian_terms": {
+                "law": "lege",
+                "emergency_ordinance": "ordonanta de urgenta",
+                "ordinance": "ordonanta",
+                "code": "cod",
+                "parliament": "Parlamentul",
+                "government": "Guvernul",
+            },
+        }
+
+        return json.dumps(guidance, indent=2, ensure_ascii=False)
 
 
 async def _execute_simple_search(
