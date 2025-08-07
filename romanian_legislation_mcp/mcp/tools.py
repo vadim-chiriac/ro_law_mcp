@@ -62,8 +62,10 @@ def register_content_search(app):
 
     @app.tool()
     async def content_search(query: str, max_results: Optional[int] = None) -> dict:
-        """Search contents of legislation documents. Do not use if user is looking for a specific document.
-        Use document_search in this case.
+        """Search the legislation database for documents that may contain the query text.
+        This is a broad database search, not a precise content search within documents.
+        Do not use if user is looking for a specific document - use document_search instead.
+        For precise content search within a known document, use document_content_search.
 
         Args:
             query: Search query
@@ -80,8 +82,9 @@ def register_title_search(app):
 
     @app.tool()
     async def title_search(query: str, max_results: Optional[int] = None) -> dict:
-        """Search title of legislation documents. Do not use if user is looking for a specific document.
-        Use document_search in this case.
+        """Search the legislation database for documents with titles that may match the query.
+        This is a broad database search of document titles, not precise title matching.
+        Do not use if user is looking for a specific document - use document_search instead.
 
         Args:
             query: Search query
@@ -98,8 +101,9 @@ def register_number_search(app):
 
     @app.tool()
     async def number_search(query: str, max_results: Optional[int] = None) -> dict:
-        """Search the identification number of legislation documents. Do not use if user is looking for a specific document.
-        Use document_search in this case.
+        """Search the legislation database for documents with identification numbers that may match the query.
+        This is a broad database search of document numbers, not precise number matching.
+        Do not use if user is looking for a specific document - use document_search instead.
 
         Args:
             query: Search query
