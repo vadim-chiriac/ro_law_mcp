@@ -1,12 +1,13 @@
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
 # These are the size limits for Claude Desktop - might be different in other cases
-MAX_RESPONSE_SIZE_BYTES = 950 * 1024
-MAX_TEXT_LENGTH_CHARS = 10000
-TRUNCATION_SUFFIX = "\n\n[... Content truncated due to size limits. Use document_search for the full document if you need the complete text ...]"
+MAX_RESPONSE_SIZE_BYTES = int(os.environ.get("MAX_RESPONSE_SIZE_BYTES", 950 * 1024))
+MAX_TEXT_LENGTH_CHARS = int(os.environ.get("MAX_TEXT_LENGTH_CHARS", 10000))
+TRUNCATION_SUFFIX = os.environ.get("TRUNCATION_SUFFIX", "\n\n[... Content truncated due to size limits. Use document_search for the full document if you need the complete text ...]")
 
 
 def _calculate_response_size(response: dict) -> int:
