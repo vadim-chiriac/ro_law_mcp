@@ -4,13 +4,11 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from romanian_legislation_mcp.document_search.search_service import SearchService
+from romanian_legislation_mcp.mcp.res_size_utils import (
+    _manage_response_size,
+)
 
 logger = logging.getLogger(__name__)
-
-# Size limits for Claude Desktop
-MAX_RESPONSE_SIZE_BYTES = 950 * 1024
-MAX_TEXT_LENGTH_CHARS = 10000
-TRUNCATION_SUFFIX = "\n\n[... Content truncated due to size limits. Use document_search for the full document if you need the complete text ...]"
 
 search_service = None
 
@@ -25,6 +23,7 @@ def register_tools(app: FastMCP, service: SearchService):
     register_title_search(app)
     register_number_search(app)
     register_document_search(app)
+    register_document_content_search(app)
     register_guidance_tool(app)
     register_document_identification_tool(app)
     register_issuer_mapping_tool(app)
@@ -162,6 +161,90 @@ def register_document_search(app):
             return {"results": [], "error": str(e)}
 
 
+def register_document_content_search(app):
+    """Register the document content search tool."""
+
+    @app.tool()
+    async def document_content_search(
+        document_type: str,
+        number: int,
+        year: int,
+        issuer: str,
+        search_query: str,
+        max_excerpts: int = 5,
+        excerpt_context_chars: int = 500,
+    ) -> dict:
+        """Search for specific content within a identified legal document.
+
+        Use this tool when you need to find specific information within a known document.
+        First use identify_legal_document or other tools to get the exact document details,
+        then use this tool to search within that document's content.
+
+        Args:
+            document_type: The type of document (e.g. 'lege')
+            number: The number of the document
+            year: The year the document was issued
+            issuer: The issuing authority of the document (e.g. 'Parlamentul')
+            search_query: What to search for within that document
+            max_excerpts: Maximum number of relevant excerpts to return (default: 5)
+            excerpt_context_chars: Characters of context around each match (default: 500)
+
+        Returns:
+            Dictionary containing document info and matching excerpts with context
+        """
+
+        if search_service is None:
+            return {"document_found": False, "error": "Search service not initialized"}
+
+        # Validate inputs
+        if not document_type.strip():
+            return {"document_found": False, "error": "Document type cannot be empty"}
+
+        if number < 0:
+            return {
+                "document_found": False,
+                "error": "Document number cannot be negative",
+            }
+
+        if year < 0:
+            return {
+                "document_found": False,
+                "error": "Document year cannot be negative",
+            }
+
+        if not issuer.strip():
+            return {"document_found": False, "error": "Document issuer cannot be empty"}
+
+        if not search_query.strip():
+            return {"document_found": False, "error": "Search query cannot be empty"}
+
+        if max_excerpts <= 0:
+            return {"document_found": False, "error": "Max excerpts must be positive"}
+
+        if excerpt_context_chars < 0:
+            return {
+                "document_found": False,
+                "error": "Excerpt context chars cannot be negative",
+            }
+
+        try:
+            result = await search_service.document_content_search(
+                document_type=document_type,
+                number=number,
+                year=year,
+                issuer=issuer,
+                search_query=search_query,
+                max_excerpts=max_excerpts,
+                excerpt_context_chars=excerpt_context_chars,
+            )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Document content search failed: {e}")
+            return {"document_found": False, "error": str(e)}
+
+
 def register_guidance_tool(app):
     """Register the search guidance tool."""
 
@@ -294,93 +377,87 @@ def register_document_identification_tool(app):
                 "number": 287,
                 "year": 2009,
                 "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 287 din 17 iulie 2009 privind Codul civil"
+                "full_name": "LEGE nr. 287 din 17 iulie 2009 privind Codul civil",
             },
             "criminal_code": {
                 "document_type": "lege",
                 "number": 286,
                 "year": 2009,
                 "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 286 din 17 iulie 2009 privind Codul civil"
+                "full_name": "LEGE nr. 286 din 17 iulie 2009 privind Codul civil",
             },
             "labor_code": {
                 "document_type": "lege",
                 "number": 53,
                 "year": 2003,
                 "issuer": "Parlamentul",
-                "full_name": "CODUL MUNCII din 24 ianuarie 2003"
+                "full_name": "CODUL MUNCII din 24 ianuarie 2003",
             },
             "tax_code": {
                 "document_type": "lege",
                 "number": 227,
                 "year": 2015,
                 "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 227 din 8 septembrie 2015 privind Codul fiscal"
+                "full_name": "LEGE nr. 227 din 8 septembrie 2015 privind Codul fiscal",
             },
             "civil_procedure_code": {
                 "document_type": "lege",
                 "number": 134,
                 "year": 2010,
                 "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 134 din 1 iulie 2010 privind Codul de procedură civilă"
+                "full_name": "LEGE nr. 134 din 1 iulie 2010 privind Codul de procedură civilă",
             },
             "criminal_procedure_code": {
                 "document_type": "lege",
                 "number": 135,
                 "year": 2010,
                 "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 135 din 1 iulie 2010 privind Codul de procedură penală"
+                "full_name": "LEGE nr. 135 din 1 iulie 2010 privind Codul de procedură penală",
             },
             "tax_procedure_code": {
                 "document_type": "lege",
                 "number": 207,
                 "year": 2015,
                 "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 207 din 20 iulie 2015 privind Codul de procedură fiscală"
-            }
+                "full_name": "LEGE nr. 207 din 20 iulie 2015 privind Codul de procedură fiscală",
+            },
         }
-        
+
         document_mappings = {
             # Civil Code variations
             "civil code": base_documents["civil_code"],
             "codul civil": base_documents["civil_code"],
             "cc": base_documents["civil_code"],
-            
-            # Criminal Code variations  
+            # Criminal Code variations
             "criminal code": base_documents["criminal_code"],
             "codul penal": base_documents["criminal_code"],
             "penal code": base_documents["criminal_code"],
             "cp": base_documents["criminal_code"],
-            
             # Labor Code variations
             "labor code": base_documents["labor_code"],
             "labour code": base_documents["labor_code"],
             "codul muncii": base_documents["labor_code"],
             "cm": base_documents["labor_code"],
-            
             # Tax/Fiscal Code variations
             "tax code": base_documents["tax_code"],
             "fiscal code": base_documents["tax_code"],
             "codul fiscal": base_documents["tax_code"],
             "cf": base_documents["tax_code"],
-            
             # Civil Procedure Code variations
             "civil procedure code": base_documents["civil_procedure_code"],
             "code of civil procedure": base_documents["civil_procedure_code"],
             "codul de procedura civila": base_documents["civil_procedure_code"],
             "cpc": base_documents["civil_procedure_code"],
-            
             # Criminal Procedure Code variations
             "criminal procedure code": base_documents["criminal_procedure_code"],
             "code of criminal procedure": base_documents["criminal_procedure_code"],
             "codul de procedura penala": base_documents["criminal_procedure_code"],
             "cpp": base_documents["criminal_procedure_code"],
-            
             # Tax Procedure Code variations
             "tax procedure code": base_documents["tax_procedure_code"],
             "fiscal procedure code": base_documents["tax_procedure_code"],
             "codul de procedura fiscala": base_documents["tax_procedure_code"],
-            "cpf": base_documents["tax_procedure_code"]
+            "cpf": base_documents["tax_procedure_code"],
         }
 
         if normalized in document_mappings:
@@ -427,9 +504,18 @@ def register_document_identification_tool(app):
             {"name": "Criminal Code (Codul Penal)", "search_hint": "codul penal"},
             {"name": "Labor Code (Codul Muncii)", "search_hint": "codul muncii"},
             {"name": "Tax Code (Codul Fiscal)", "search_hint": "codul fiscal"},
-            {"name": "Civil Procedure Code (Codul de Procedura Civila)", "search_hint": "codul de procedura civila"},
-            {"name": "Criminal Procedure Code (Codul de Procedura Penala)", "search_hint": "codul de procedura penala"},
-            {"name": "Tax Procedure Code (Codul de Procedura Fiscala)", "search_hint": "codul de procedura fiscala"}
+            {
+                "name": "Civil Procedure Code (Codul de Procedura Civila)",
+                "search_hint": "codul de procedura civila",
+            },
+            {
+                "name": "Criminal Procedure Code (Codul de Procedura Penala)",
+                "search_hint": "codul de procedura penala",
+            },
+            {
+                "name": "Tax Procedure Code (Codul de Procedura Fiscala)",
+                "search_hint": "codul de procedura fiscala",
+            },
         ]
 
         return json.dumps(
@@ -636,94 +722,3 @@ async def _execute_simple_search(
     except Exception as e:
         logger.error(f"{operation_name} MCP tool failed: {e}")
         return {"results": [], "error": str(e)}
-
-
-def _calculate_response_size(response: dict) -> int:
-    """Calculate the byte size of a JSON response."""
-    try:
-        return len(json.dumps(response, ensure_ascii=False).encode("utf-8"))
-    except Exception as e:
-        logger.warning(f"Failed to calculate response size: {e}")
-        return 0
-
-
-def _truncate_document_content(results: list) -> tuple[list, bool]:
-    """Truncate document text content to fit within size limits."""
-
-    was_truncated = False
-
-    for result in results:
-        if isinstance(result, dict) and "text" in result:
-            text = result.get("text", "")
-            if len(text) > MAX_TEXT_LENGTH_CHARS:
-                result["text"] = text[:MAX_TEXT_LENGTH_CHARS] + TRUNCATION_SUFFIX
-                result["content_truncated"] = True
-                was_truncated = True
-
-    return results, was_truncated
-
-
-def _manage_response_size(response: dict) -> dict:
-    """Manage response size by truncating content if needed."""
-
-    current_size = _calculate_response_size(response)
-
-    if current_size <= MAX_RESPONSE_SIZE_BYTES:
-        return response
-
-    logger.info(
-        f"Response size ({current_size} bytes) exceeds limit ({MAX_RESPONSE_SIZE_BYTES} bytes), truncating content..."
-    )
-
-    if "results" in response and isinstance(response["results"], list):
-        truncated_results, was_truncated = _truncate_document_content(
-            response["results"]
-        )
-        response["results"] = truncated_results
-
-        if was_truncated:
-            response["size_management"] = {
-                "content_truncated": True,
-                "reason": "Response size exceeded Claude Desktop limits",
-                "original_size_bytes": current_size,
-                "note": "Use document_search for specific documents to get full content",
-            }
-
-        new_size = _calculate_response_size(response)
-        logger.info(f"After truncation: {new_size} bytes")
-
-        if new_size > MAX_RESPONSE_SIZE_BYTES and len(response["results"]) > 1:
-            logger.info("Still too large, reducing number of results...")
-
-            # Binary search to find maximum number of results that fit, thanks Claude for this trick
-            left, right = 1, len(response["results"])
-            best_count = 1
-
-            while left <= right:
-                mid = (left + right) // 2
-                test_response = response.copy()
-                test_response["results"] = response["results"][:mid]
-                test_response["total"] = mid
-
-                test_size = _calculate_response_size(test_response)
-
-                if test_size <= MAX_RESPONSE_SIZE_BYTES:
-                    best_count = mid
-                    left = mid + 1
-                else:
-                    right = mid - 1
-
-            original_count = len(response["results"])
-            response["results"] = response["results"][:best_count]
-            response["total"] = best_count
-            response["size_management"]["results_reduced"] = True
-            response["size_management"]["original_result_count"] = original_count
-            response["size_management"]["reduced_to_count"] = best_count
-
-            final_size = _calculate_response_size(response)
-            response["size_management"]["final_size_bytes"] = final_size
-            logger.info(
-                f"Reduced to {best_count} results, final size: {final_size} bytes"
-            )
-
-    return response
