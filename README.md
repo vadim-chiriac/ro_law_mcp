@@ -20,6 +20,7 @@ This MCP server enables AI assistants to search and retrieve Romanian legislatio
 ### Key Features
 
 - **Multiple Search Methods**: Search by content, title, document number, or exact identification
+- **Document Content Search**: Precise text search within specific identified documents with contextual excerpts
 - **Document Changes Tracking**: Retrieves amendment information since the API only provides original document text, not consolidated versions
 - **Smart Mappings**: Handles various document type and issuer name variations
 - **Size Management**: Automatically manages response sizes for optimal performance with AI assistants
@@ -45,18 +46,23 @@ This MCP server enables AI assistants to search and retrieve Romanian legislatio
    WSDL_URL=https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl
    CONNECTION_TIMEOUT=10
    READ_TIMEOUT=30
+   
+   # Response size management (adjust based on your MCP client)
+   MAX_RESPONSE_SIZE_BYTES=972800  # 950KB (default for Claude Desktop)
+   MAX_TEXT_LENGTH_CHARS=10000     # Character limit before truncation
+   TRUNCATION_SUFFIX="[... Content truncated due to size limits ...]"
    ```
 
 ## Usage
 
 ### Running the Server
 
-**For MCP protocol (recommended)**:
+**For STDIO transport (recommended)**:
 ```bash
 python run_server.py
 ```
 
-**For HTTP debugging**:
+**For HTTP transport**:
 ```bash
 python run_server.py --http
 ```
@@ -104,19 +110,6 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 }
 ```
 
-#### Option 4: Using conda environment
-```json
-{
-  "mcpServers": {
-    "romanian-legislation": {
-      "command": "/path/to/miniconda3/envs/your-env-name/bin/python",
-      "args": ["/path/to/ro_law_mcp/run_server.py"],
-      "cwd": "/path/to/ro_law_mcp"
-    }
-  }
-}
-```
-
 **Important Notes:**
 - Replace `/path/to/ro_law_mcp` with the actual path to your cloned repository
 - Use absolute paths for reliability
@@ -126,13 +119,21 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 ### Available Tools
 
 - **`health_check`**: Verify server status
-- **`content_search`**: Search within document text
-- **`title_search`**: Search document titles
-- **`number_search`**: Search by document numbers
-- **`document_search`**: Find specific documents by type, number, year, and issuer
+- **`content_search`**: Search the legislation database for documents that may contain query text (broad search)
+- **`title_search`**: Search the legislation database for documents with titles that may match query (broad search)  
+- **`number_search`**: Search the legislation database for documents with numbers that may match query (broad search)
+- **`document_search`**: Find specific documents by exact type, number, year, and issuer
+- **`document_content_search`**: Precise text search within a specific identified document, returning contextual excerpts
 - **`identify_legal_document`**: Convert natural language document descriptions (e.g., "Civil Code") to exact identification parameters
 - **`generic_document_guidance`**: Get guidance for finding specific documents
 - **`get_correct_issuer`**: Map issuer descriptions to correct legal terms
+
+#### Search Strategy
+
+For best results, use tools in this order:
+1. **For specific documents**: Use `identify_legal_document` → `document_content_search` 
+2. **For exploration**: Use the broad search tools (`content_search`, `title_search`, `number_search`)
+3. **For precise document retrieval**: Use `document_search`
 
 ## Limitations
 
@@ -142,7 +143,6 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 - **Document Consolidation**: The SOAP API only provides original document text, not consolidated versions that incorporate amendments. While we retrieve amendment information to help LLMs understand what has changed, we cannot automatically build the current consolidated form of a document from the base text plus amendments
 - **Historical Changes**: Change tracking depends on the availability of data in the government system
 - **Document Identification Mappings**: The `identify_legal_document` tool relies on hardcoded mappings for major Romanian legal codes (Civil Code, Criminal Code, etc.). These mappings may become outdated if document numbers, years, or legal references change over time. Users should verify document details through official sources for critical applications
-- **Network Requirements**: Requires internet connectivity to access the government API
 
 ## License
 
