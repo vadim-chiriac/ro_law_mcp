@@ -70,8 +70,8 @@ Add to your MCP client configuration (e.g., Claude Desktop):
   "mcpServers": {
     "romanian-legislation": {
       "command": "python",
-      "args": ["path/to/lawgic/run_server.py"],
-      "cwd": "path/to/lawgic"
+      "args": ["path/to/ro_law_mcp/run_server.py"],
+      "cwd": "path/to/ro_law_mcp"
     }
   }
 }
@@ -84,6 +84,7 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 - **`title_search`**: Search document titles
 - **`number_search`**: Search by document numbers
 - **`document_search`**: Find specific documents by type, number, year, and issuer
+- **`identify_legal_document`**: Convert natural language document descriptions (e.g., "Civil Code") to exact identification parameters
 - **`generic_document_guidance`**: Get guidance for finding specific documents
 - **`get_correct_issuer`**: Map issuer descriptions to correct legal terms
 
@@ -94,6 +95,7 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 - **Rate Limits**: Subject to any rate limiting imposed by the government API
 - **Document Consolidation**: The SOAP API only provides original document text, not consolidated versions that incorporate amendments. While we retrieve amendment information to help LLMs understand what has changed, we cannot automatically build the current consolidated form of a document from the base text plus amendments
 - **Historical Changes**: Change tracking depends on the availability of data in the government system
+- **Document Identification Mappings**: The `identify_legal_document` tool relies on hardcoded mappings for major Romanian legal codes (Civil Code, Criminal Code, etc.). These mappings may become outdated if document numbers, years, or legal references change over time. Users should verify document details through official sources for critical applications
 - **Network Requirements**: Requires internet connectivity to access the government API
 
 ## License

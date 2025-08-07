@@ -8,8 +8,8 @@ from romanian_legislation_mcp.document_search.search_service import SearchServic
 logger = logging.getLogger(__name__)
 
 # Size limits for Claude Desktop
-MAX_RESPONSE_SIZE_BYTES = 950 * 1024 
-MAX_TEXT_LENGTH_CHARS = 10000 
+MAX_RESPONSE_SIZE_BYTES = 950 * 1024
+MAX_TEXT_LENGTH_CHARS = 10000
 TRUNCATION_SUFFIX = "\n\n[... Content truncated due to size limits. Use document_search for the full document if you need the complete text ...]"
 
 search_service = None
@@ -26,6 +26,7 @@ def register_tools(app: FastMCP, service: SearchService):
     register_number_search(app)
     register_document_search(app)
     register_guidance_tool(app)
+    register_document_identification_tool(app)
     register_issuer_mapping_tool(app)
 
     logger.info("All MCP tools registered successfully.")
@@ -242,6 +243,211 @@ def register_guidance_tool(app):
         }
 
         return json.dumps(guidance, indent=2, ensure_ascii=False)
+
+
+def register_document_identification_tool(app):
+    """Register the document identification tool."""
+
+    @app.tool()
+    async def identify_legal_document(document_description: str) -> str:
+        """
+        Identifies Romanian legal documents from natural language descriptions.
+
+        Converts user descriptions like "Civil Code", "Criminal Code", "Labor Code"
+        into exact parameters needed for document_search.
+
+        Use this tool when you need to find the exact document identification details
+        from a natural language description. Essential for focused document searches.
+
+        Args:
+            document_description: Natural language description in English or Romanian
+            (e.g., "Civil Code", "Romanian Criminal Code", "Codul Muncii")
+
+        Returns:
+            JSON with document identification details for use with document_search,
+            or suggestions if no exact match is found
+        """
+
+        normalized = document_description.strip().lower()
+        normalized = (
+            normalized.replace("ă", "a")
+            .replace("â", "a")
+            .replace("î", "i")
+            .replace("ț", "t")
+            .replace("ţ", "t")
+            .replace("ş", "s")
+            .replace("ș", "s")
+        )
+
+        normalized = (
+            normalized.replace("romanian", "")
+            .replace("romania", "")
+            .replace("romaniei", "")
+            .replace("din romania", "")
+            .replace("al romaniei", "")
+            .strip()
+        )
+
+        base_documents = {
+            "civil_code": {
+                "document_type": "lege",
+                "number": 287,
+                "year": 2009,
+                "issuer": "Parlamentul",
+                "full_name": "LEGE nr. 287 din 17 iulie 2009 privind Codul civil"
+            },
+            "criminal_code": {
+                "document_type": "lege",
+                "number": 286,
+                "year": 2009,
+                "issuer": "Parlamentul",
+                "full_name": "LEGE nr. 286 din 17 iulie 2009 privind Codul civil"
+            },
+            "labor_code": {
+                "document_type": "lege",
+                "number": 53,
+                "year": 2003,
+                "issuer": "Parlamentul",
+                "full_name": "CODUL MUNCII din 24 ianuarie 2003"
+            },
+            "tax_code": {
+                "document_type": "lege",
+                "number": 227,
+                "year": 2015,
+                "issuer": "Parlamentul",
+                "full_name": "LEGE nr. 227 din 8 septembrie 2015 privind Codul fiscal"
+            },
+            "civil_procedure_code": {
+                "document_type": "lege",
+                "number": 134,
+                "year": 2010,
+                "issuer": "Parlamentul",
+                "full_name": "LEGE nr. 134 din 1 iulie 2010 privind Codul de procedură civilă"
+            },
+            "criminal_procedure_code": {
+                "document_type": "lege",
+                "number": 135,
+                "year": 2010,
+                "issuer": "Parlamentul",
+                "full_name": "LEGE nr. 135 din 1 iulie 2010 privind Codul de procedură penală"
+            },
+            "tax_procedure_code": {
+                "document_type": "lege",
+                "number": 207,
+                "year": 2015,
+                "issuer": "Parlamentul",
+                "full_name": "LEGE nr. 207 din 20 iulie 2015 privind Codul de procedură fiscală"
+            }
+        }
+        
+        document_mappings = {
+            # Civil Code variations
+            "civil code": base_documents["civil_code"],
+            "codul civil": base_documents["civil_code"],
+            "cc": base_documents["civil_code"],
+            
+            # Criminal Code variations  
+            "criminal code": base_documents["criminal_code"],
+            "codul penal": base_documents["criminal_code"],
+            "penal code": base_documents["criminal_code"],
+            "cp": base_documents["criminal_code"],
+            
+            # Labor Code variations
+            "labor code": base_documents["labor_code"],
+            "labour code": base_documents["labor_code"],
+            "codul muncii": base_documents["labor_code"],
+            "cm": base_documents["labor_code"],
+            
+            # Tax/Fiscal Code variations
+            "tax code": base_documents["tax_code"],
+            "fiscal code": base_documents["tax_code"],
+            "codul fiscal": base_documents["tax_code"],
+            "cf": base_documents["tax_code"],
+            
+            # Civil Procedure Code variations
+            "civil procedure code": base_documents["civil_procedure_code"],
+            "code of civil procedure": base_documents["civil_procedure_code"],
+            "codul de procedura civila": base_documents["civil_procedure_code"],
+            "cpc": base_documents["civil_procedure_code"],
+            
+            # Criminal Procedure Code variations
+            "criminal procedure code": base_documents["criminal_procedure_code"],
+            "code of criminal procedure": base_documents["criminal_procedure_code"],
+            "codul de procedura penala": base_documents["criminal_procedure_code"],
+            "cpp": base_documents["criminal_procedure_code"],
+            
+            # Tax Procedure Code variations
+            "tax procedure code": base_documents["tax_procedure_code"],
+            "fiscal procedure code": base_documents["tax_procedure_code"],
+            "codul de procedura fiscala": base_documents["tax_procedure_code"],
+            "cpf": base_documents["tax_procedure_code"]
+        }
+
+        if normalized in document_mappings:
+            document_info = document_mappings[normalized]
+            return json.dumps(
+                {
+                    "input": document_description,
+                    "match_type": "exact",
+                    "confidence": "high",
+                    "document_details": document_info,
+                    "usage_instruction": "Use these details with document_search(document_type='{type}', number={number}, year={year}, issuer='{issuer}')".format(
+                        type=document_info["document_type"],
+                        number=document_info["number"],
+                        year=document_info["year"],
+                        issuer=document_info["issuer"],
+                    ),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        # Check for partial matches
+        partial_matches = []
+        for key, value in document_mappings.items():
+            if normalized in key or key in normalized:
+                partial_matches.append({"description": key, "document_details": value})
+
+        if partial_matches:
+            return json.dumps(
+                {
+                    "input": document_description,
+                    "match_type": "partial",
+                    "confidence": "medium",
+                    "suggestions": partial_matches[:3],
+                    "note": "Multiple potential matches found. Choose the most appropriate one.",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        # No matches found
+        common_documents = [
+            {"name": "Civil Code (Codul Civil)", "search_hint": "codul civil"},
+            {"name": "Criminal Code (Codul Penal)", "search_hint": "codul penal"},
+            {"name": "Labor Code (Codul Muncii)", "search_hint": "codul muncii"},
+            {"name": "Tax Code (Codul Fiscal)", "search_hint": "codul fiscal"},
+            {"name": "Civil Procedure Code (Codul de Procedura Civila)", "search_hint": "codul de procedura civila"},
+            {"name": "Criminal Procedure Code (Codul de Procedura Penala)", "search_hint": "codul de procedura penala"},
+            {"name": "Tax Procedure Code (Codul de Procedura Fiscala)", "search_hint": "codul de procedura fiscala"}
+        ]
+
+        return json.dumps(
+            {
+                "input": document_description,
+                "match_type": "none",
+                "confidence": "low",
+                "message": "No direct match found. Try web search or title_search to find the document details.",
+                "search_suggestions": [
+                    f'Web search: "{document_description} numar romania"',
+                    f'Web search: "{document_description} romanian law number year"',
+                    f'Use title_search("{document_description}") to find candidate documents',
+                ],
+                "common_documents": common_documents,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
 
 
 def register_issuer_mapping_tool(app):
@@ -489,7 +695,7 @@ def _manage_response_size(response: dict) -> dict:
         if new_size > MAX_RESPONSE_SIZE_BYTES and len(response["results"]) > 1:
             logger.info("Still too large, reducing number of results...")
 
-            # Binary search to find maximum number of results that fit, thanks Claude for this trick 
+            # Binary search to find maximum number of results that fit, thanks Claude for this trick
             left, right = 1, len(response["results"])
             best_count = 1
 
