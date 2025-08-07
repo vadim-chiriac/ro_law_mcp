@@ -63,19 +63,65 @@ python run_server.py --http
 
 ### MCP Integration
 
-Add to your MCP client configuration (e.g., Claude Desktop):
+Add to your MCP client configuration (e.g., Claude Desktop). Choose the configuration that matches your setup:
 
+#### Option 1: Using system Python (Linux/macOS)
 ```json
 {
   "mcpServers": {
     "romanian-legislation": {
       "command": "python",
-      "args": ["path/to/ro_law_mcp/run_server.py"],
-      "cwd": "path/to/ro_law_mcp"
+      "args": ["/path/to/ro_law_mcp/run_server.py"],
+      "cwd": "/path/to/ro_law_mcp"
     }
   }
 }
 ```
+
+#### Option 2: Using virtual environment (Linux/macOS)
+```json
+{
+  "mcpServers": {
+    "romanian-legislation": {
+      "command": "/path/to/ro_law_mcp/.venv/bin/python",
+      "args": ["/path/to/ro_law_mcp/run_server.py"],
+      "cwd": "/path/to/ro_law_mcp"
+    }
+  }
+}
+```
+
+#### Option 3: Using virtual environment (Windows)
+```json
+{
+  "mcpServers": {
+    "romanian-legislation": {
+      "command": "C:/path/to/ro_law_mcp/.venv/Scripts/python.exe",
+      "args": ["C:/path/to/ro_law_mcp/run_server.py"],
+      "cwd": "C:/path/to/ro_law_mcp"
+    }
+  }
+}
+```
+
+#### Option 4: Using conda environment
+```json
+{
+  "mcpServers": {
+    "romanian-legislation": {
+      "command": "/path/to/miniconda3/envs/your-env-name/bin/python",
+      "args": ["/path/to/ro_law_mcp/run_server.py"],
+      "cwd": "/path/to/ro_law_mcp"
+    }
+  }
+}
+```
+
+**Important Notes:**
+- Replace `/path/to/ro_law_mcp` with the actual path to your cloned repository
+- Use absolute paths for reliability
+- On Windows, use forward slashes (`/`) or double backslashes (`\\`) in JSON
+- If using a virtual environment, activate it first and install dependencies with `pip install -r requirements.txt`
 
 ### Available Tools
 
