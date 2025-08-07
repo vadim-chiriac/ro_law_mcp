@@ -98,4 +98,4 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 
 ## License
 
-[Add your chosen license here - e.g., MIT, Apache 2.0, GPL, etc.]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
