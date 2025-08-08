@@ -165,7 +165,8 @@ class SearchService:
                 "title": document.title,
                 "issuer": document.issuer,
                 "effective_date": document.effective_date,
-                "changes": document.changes,
+                # Skip adding changes for now, as we are reaching the size limit for documents with extensive changes
+                # "changes": document.changes, 
                 "document_url": getattr(document, "url", None),
             },
             "excerpts": excerpts,
