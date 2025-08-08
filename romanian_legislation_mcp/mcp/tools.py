@@ -4,6 +4,12 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from romanian_legislation_mcp.document_search.search_service import SearchService
+from romanian_legislation_mcp.document_search.legal_document_mappings import (
+    DOCUMENT_MAPPINGS,
+    COMMON_DOCUMENTS,
+    ISSUER_MAPPINGS_FOR_TOOLS,
+    COMMON_ISSUERS,
+)
 from romanian_legislation_mcp.mcp.res_size_utils import (
     _manage_response_size,
 )
@@ -202,10 +208,9 @@ def register_document_content_search(app):
         4. CONTEXT MATTERS: Legal provisions often reference each other - check surrounding articles
         
         EFFECTIVE search query patterns:
-        - For termination: Try "încetare", "terminare", "desfiinţare", "expirare" separately
-        - For obligations: Try "obligaţii", "datorii", "răspunderi" 
-        - For rights: Try "drepturi", "împuterniciri", "competenţe"
-        - For procedures: Try "procedură", "modalitate", "condiţii"
+        - For termination: Try "încetare", "denunțare"separately
+        - For obligations: Try "obligaţii", "răspunderea" 
+        - For rights: Try "drepturi"
 
         Args:
             document_type: The type of document (e.g. 'lege')
@@ -398,94 +403,7 @@ def register_document_identification_tool(app):
             .strip()
         )
 
-        base_documents = {
-            "civil_code": {
-                "document_type": "lege",
-                "number": 287,
-                "year": 2009,
-                "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 287 din 17 iulie 2009 privind Codul civil",
-            },
-            "criminal_code": {
-                "document_type": "lege",
-                "number": 286,
-                "year": 2009,
-                "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 286 din 17 iulie 2009 privind Codul civil",
-            },
-            "labor_code": {
-                "document_type": "lege",
-                "number": 53,
-                "year": 2003,
-                "issuer": "Parlamentul",
-                "full_name": "CODUL MUNCII din 24 ianuarie 2003",
-            },
-            "tax_code": {
-                "document_type": "lege",
-                "number": 227,
-                "year": 2015,
-                "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 227 din 8 septembrie 2015 privind Codul fiscal",
-            },
-            "civil_procedure_code": {
-                "document_type": "lege",
-                "number": 134,
-                "year": 2010,
-                "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 134 din 1 iulie 2010 privind Codul de procedură civilă",
-            },
-            "criminal_procedure_code": {
-                "document_type": "lege",
-                "number": 135,
-                "year": 2010,
-                "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 135 din 1 iulie 2010 privind Codul de procedură penală",
-            },
-            "tax_procedure_code": {
-                "document_type": "lege",
-                "number": 207,
-                "year": 2015,
-                "issuer": "Parlamentul",
-                "full_name": "LEGE nr. 207 din 20 iulie 2015 privind Codul de procedură fiscală",
-            },
-        }
-
-        document_mappings = {
-            # Civil Code variations
-            "civil code": base_documents["civil_code"],
-            "codul civil": base_documents["civil_code"],
-            "cc": base_documents["civil_code"],
-            # Criminal Code variations
-            "criminal code": base_documents["criminal_code"],
-            "codul penal": base_documents["criminal_code"],
-            "penal code": base_documents["criminal_code"],
-            "cp": base_documents["criminal_code"],
-            # Labor Code variations
-            "labor code": base_documents["labor_code"],
-            "labour code": base_documents["labor_code"],
-            "codul muncii": base_documents["labor_code"],
-            "cm": base_documents["labor_code"],
-            # Tax/Fiscal Code variations
-            "tax code": base_documents["tax_code"],
-            "fiscal code": base_documents["tax_code"],
-            "codul fiscal": base_documents["tax_code"],
-            "cf": base_documents["tax_code"],
-            # Civil Procedure Code variations
-            "civil procedure code": base_documents["civil_procedure_code"],
-            "code of civil procedure": base_documents["civil_procedure_code"],
-            "codul de procedura civila": base_documents["civil_procedure_code"],
-            "cpc": base_documents["civil_procedure_code"],
-            # Criminal Procedure Code variations
-            "criminal procedure code": base_documents["criminal_procedure_code"],
-            "code of criminal procedure": base_documents["criminal_procedure_code"],
-            "codul de procedura penala": base_documents["criminal_procedure_code"],
-            "cpp": base_documents["criminal_procedure_code"],
-            # Tax Procedure Code variations
-            "tax procedure code": base_documents["tax_procedure_code"],
-            "fiscal procedure code": base_documents["tax_procedure_code"],
-            "codul de procedura fiscala": base_documents["tax_procedure_code"],
-            "cpf": base_documents["tax_procedure_code"],
-        }
+        document_mappings = DOCUMENT_MAPPINGS
 
         if normalized in document_mappings:
             document_info = document_mappings[normalized]
@@ -525,24 +443,7 @@ def register_document_identification_tool(app):
                 indent=2,
             )
 
-        common_documents = [
-            {"name": "Civil Code (Codul Civil)", "search_hint": "codul civil"},
-            {"name": "Criminal Code (Codul Penal)", "search_hint": "codul penal"},
-            {"name": "Labor Code (Codul Muncii)", "search_hint": "codul muncii"},
-            {"name": "Tax Code (Codul Fiscal)", "search_hint": "codul fiscal"},
-            {
-                "name": "Civil Procedure Code (Codul de Procedura Civila)",
-                "search_hint": "codul de procedura civila",
-            },
-            {
-                "name": "Criminal Procedure Code (Codul de Procedura Penala)",
-                "search_hint": "codul de procedura penala",
-            },
-            {
-                "name": "Tax Procedure Code (Codul de Procedura Fiscala)",
-                "search_hint": "codul de procedura fiscala",
-            },
-        ]
+        common_documents = COMMON_DOCUMENTS
 
         return json.dumps(
             {
@@ -594,63 +495,7 @@ def register_issuer_mapping_tool(app):
             .replace("ș", "s")
         )
 
-        issuer_mappings = {
-            # Government variations
-            "government": "Guvernul",
-            "guvern": "Guvernul",
-            "guvernul": "Guvernul",
-            "guvernul romaniei": "Guvernul",
-            "government of romania": "Guvernul",
-            "romanian government": "Guvernul",
-            # Parliament variations
-            "parliament": "Parlamentul",
-            "parlamentul": "Parlamentul",
-            "parlament": "Parlamentul",
-            "parlamentul romaniei": "Parlamentul",
-            "parliament of romania": "Parlamentul",
-            "romanian parliament": "Parlamentul",
-            # Prime Minister variations
-            "prime minister": "Prim-ministrul",
-            "prim ministru": "Prim-ministrul",
-            "primul ministru": "Prim-ministrul",
-            "prim-ministru": "Prim-ministrul",
-            "prim-ministrul": "Prim-ministrul",
-            "pm": "Prim-ministrul",
-            # President variations
-            "president": "Presedintele Romaniei",
-            "presedinte": "Presedintele Romaniei",
-            "presedintele": "Presedintele Romaniei",
-            "presedintele romaniei": "Presedintele Romaniei",
-            "president of romania": "Presedintele Romaniei",
-            # Ministries (common ones)
-            "ministry of finance": "Ministerul Finantelor",
-            "ministerul finantelor": "Ministerul Finantelor",
-            "ministry of health": "Ministerul Sanatatii",
-            "ministerul sanatatii": "Ministerul Sanatatii",
-            "ministry of education": "Ministerul Educatiei",
-            "ministerul educatiei": "Ministerul Educatiei",
-            "ministry of interior": "Ministerul Afacerilor Interne",
-            "ministerul afacerilor interne": "Ministerul Afacerilor Interne",
-            "ministry of justice": "Ministerul Justitiei",
-            "ministerul justitiei": "Ministerul Justitiei",
-            # Agencies and authorities
-            "anaf": "Agentia Nationala de Administrare Fiscala",
-            "tax authority": "Agentia Nationala de Administrare Fiscala",
-            "national bank": "Banca Nationala a Romaniei",
-            "bnr": "Banca Nationala a Romaniei",
-            "banca nationala": "Banca Nationala a Romaniei",
-            # Consumer protection
-            "anpc": "Autoritatea Nationala pentru Protectia Consumatorilor",
-            "consumer protection": "Autoritatea Nationala pentru Protectia Consumatorilor",
-            # Courts
-            "constitutional court": "Curtea Constitutionala",
-            "curtea constitutionala": "Curtea Constitutionala",
-            "ccr": "Curtea Constitutionala",
-            "supreme court": "Inalta Curte de Casatie si Justitie",
-            "curtea suprema": "Inalta Curte de Casatie si Justitie",
-            "inalta curte": "Inalta Curte de Casatie si Justitie",
-            "iccj": "Inalta Curte de Casatie si Justitie",
-        }
+        issuer_mappings = ISSUER_MAPPINGS_FOR_TOOLS
 
         if normalized in issuer_mappings:
             correct_issuer = issuer_mappings[normalized]
@@ -678,20 +523,13 @@ def register_issuer_mapping_tool(app):
                     "input": issuer_description,
                     "match_type": "partial",
                     "confidence": "medium",
-                    "suggestions": partial_matches[:5],  # Limit to top 5
+                    "suggestions": partial_matches[:5],  
                 },
                 ensure_ascii=False,
                 indent=2,
             )
 
-        common_issuers = [
-            {"description": "Government/Executive", "issuer": "Guvernul"},
-            {"description": "Parliament/Legislative", "issuer": "Parlamentul"},
-            {"description": "Prime Minister", "issuer": "Prim-ministrul"},
-            {"description": "President", "issuer": "Presedintele Romaniei"},
-            {"description": "Ministry of Finance", "issuer": "Ministerul Finantelor"},
-            {"description": "National Bank", "issuer": "Banca Nationala a Romaniei"},
-        ]
+        common_issuers = COMMON_ISSUERS
 
         return json.dumps(
             {
