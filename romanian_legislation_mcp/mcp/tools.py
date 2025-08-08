@@ -249,17 +249,14 @@ def register_document_content_search(app):
         if search_service is None:
             return {"document_found": False, "error": "Search service not initialized"}
 
-        # Validate document identification parameters
         validation_error = validate_document_identification(document_type, number, year, issuer)
         if validation_error:
             return validation_error
 
-        # Validate search query
         validation_error = validate_search_query(search_query)
         if validation_error:
             return validation_error
 
-        # Validate search parameters
         validation_error = validate_search_parameters(max_excerpts, excerpt_context_chars, search_position, search_radius)
         if validation_error:
             return validation_error
@@ -317,7 +314,6 @@ def register_document_changes(app):
         if search_service is None:
             return {"document_found": False, "error": "Search service not initialized"}
 
-        # Validate document identification parameters
         validation_error = validate_document_identification(document_type, number, year, issuer)
         if validation_error:
             return validation_error
@@ -501,7 +497,6 @@ def register_document_identification_tool(app):
                 indent=2,
             )
 
-        # Check for partial matches
         partial_matches = []
         for key, value in document_mappings.items():
             if normalized in key or key in normalized:
@@ -635,7 +630,6 @@ async def _execute_simple_search(
     if search_service is None:
         return {"results": [], "error": "Search service not initialized"}
 
-    # Validate parameters
     validation_error = validate_simple_search_parameters(query, max_results)
     if validation_error:
         return validation_error
