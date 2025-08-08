@@ -4,6 +4,7 @@ import re
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
+from romanian_legislation_mcp.api_client.utils import create_fuzzy_romanian_pattern
 from romanian_legislation_mcp.document_search.exact_document_finder import (
     ExactDocumentFinder,
 )
@@ -117,18 +118,18 @@ class SearchService:
             }
 
         text = document.text
-        query_pattern = re.compile(re.escape(search_query), re.IGNORECASE)
+        fuzzy_pattern = create_fuzzy_romanian_pattern(search_query)
+        query_pattern = re.compile(fuzzy_pattern, re.IGNORECASE)
         matches = list(query_pattern.finditer(text))
 
         if not matches:
             return {
                 "document_found": True,
                 "document_info": {
-                    "title": document.title,
                     "document_type": document_type,
-                    "number": number,
-                    "year": year,
+                    "title": document.title,
                     "issuer": issuer,
+                    "changes": document.changes
                 },
                 "excerpts": [],
                 "total_matches": 0,
