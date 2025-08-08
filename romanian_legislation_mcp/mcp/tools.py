@@ -13,6 +13,13 @@ from romanian_legislation_mcp.document_search.legal_document_mappings import (
 from romanian_legislation_mcp.mcp.res_size_utils import (
     _manage_response_size,
 )
+from romanian_legislation_mcp.mcp.validation import (
+    validate_document_identification,
+    validate_search_query,
+    validate_search_parameters,
+    validate_simple_search_parameters,
+    validate_document_search_parameters,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,19 +166,10 @@ def register_document_search(app):
         if search_service is None:
             return {"results": [], "error": "Search service not initialized"}
 
-        if document_type.strip() == "":
-            return {"results": [], "error": "Document type cannot be empty."}
-
-        if (
-            number < 0
-        ):  # Some documents actually have 0 as number in the SOAP API database
-            return {"results": [], "error": "Document number cannot be less than 0."}
-
-        if year < 0:
-            return {"results": [], "error": "Document year cannot be less than 0."}
-
-        if issuer.strip() == "":
-            return {"results": [], "error": "Document issuer cannot be empty."}
+        # Validate parameters
+        validation_error = validate_document_search_parameters(document_type, number, year, issuer)
+        if validation_error:
+            return validation_error
 
         try:
             result = await search_service.try_get_exact_match(
@@ -251,48 +249,20 @@ def register_document_content_search(app):
         if search_service is None:
             return {"document_found": False, "error": "Search service not initialized"}
 
-        # Validate inputs
-        if not document_type.strip():
-            return {"document_found": False, "error": "Document type cannot be empty"}
+        # Validate document identification parameters
+        validation_error = validate_document_identification(document_type, number, year, issuer)
+        if validation_error:
+            return validation_error
 
-        if number < 0:
-            return {
-                "document_found": False,
-                "error": "Document number cannot be negative",
-            }
+        # Validate search query
+        validation_error = validate_search_query(search_query)
+        if validation_error:
+            return validation_error
 
-        if year < 0:
-            return {
-                "document_found": False,
-                "error": "Document year cannot be negative",
-            }
-
-        if not issuer.strip():
-            return {"document_found": False, "error": "Document issuer cannot be empty"}
-
-        if not search_query.strip():
-            return {"document_found": False, "error": "Search query cannot be empty"}
-
-        if max_excerpts <= 0:
-            return {"document_found": False, "error": "Max excerpts must be positive"}
-
-        if excerpt_context_chars < 0:
-            return {
-                "document_found": False,
-                "error": "Excerpt context chars cannot be negative",
-            }
-
-        if search_position is not None and search_position < 0:
-            return {
-                "document_found": False,
-                "error": "Search position cannot be negative",
-            }
-
-        if search_radius <= 0:
-            return {
-                "document_found": False,
-                "error": "Search radius must be positive",
-            }
+        # Validate search parameters
+        validation_error = validate_search_parameters(max_excerpts, excerpt_context_chars, search_position, search_radius)
+        if validation_error:
+            return validation_error
 
         try:
             result = await search_service.document_content_search(
@@ -347,23 +317,10 @@ def register_document_changes(app):
         if search_service is None:
             return {"document_found": False, "error": "Search service not initialized"}
 
-        if not document_type.strip():
-            return {"document_found": False, "error": "Document type cannot be empty"}
-
-        if number < 0:
-            return {
-                "document_found": False,
-                "error": "Document number cannot be negative",
-            }
-
-        if year < 0:
-            return {
-                "document_found": False,
-                "error": "Document year cannot be negative",
-            }
-
-        if not issuer.strip():
-            return {"document_found": False, "error": "Document issuer cannot be empty"}
+        # Validate document identification parameters
+        validation_error = validate_document_identification(document_type, number, year, issuer)
+        if validation_error:
+            return validation_error
 
         try:
             document = await search_service.try_get_exact_match(
@@ -678,11 +635,10 @@ async def _execute_simple_search(
     if search_service is None:
         return {"results": [], "error": "Search service not initialized"}
 
-    if not query or query.strip() == "":
-        return {"results": [], "error": "Query cannot be empty."}
-
-    if max_results is not None and max_results <= 0:
-        return {"results": [], "error": "Max results must be positive."}
+    # Validate parameters
+    validation_error = validate_simple_search_parameters(query, max_results)
+    if validation_error:
+        return validation_error
 
     try:
         if max_results is None:
