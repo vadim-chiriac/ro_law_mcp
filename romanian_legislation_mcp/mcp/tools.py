@@ -30,6 +30,7 @@ def register_tools(app: FastMCP, service: SearchService):
     register_number_search(app)
     register_document_search(app)
     register_document_content_search(app)
+    register_document_changes(app)
     register_guidance_tool(app)
     register_document_identification_tool(app)
     register_issuer_mapping_tool(app)
@@ -286,6 +287,89 @@ def register_document_content_search(app):
 
         except Exception as e:
             logger.error(f"Document content search failed: {e}")
+            return {"document_found": False, "error": str(e)}
+
+
+def register_document_changes(app):
+    """Register the document changes tool."""
+
+    @app.tool()
+    async def document_changes(
+        document_type: str,
+        number: int,
+        year: int,
+        issuer: str,
+    ) -> dict:
+        """Retrieve changes made to a specific legal document.
+
+        Use this tool AFTER document_content_search to understand if the excerpts you found
+        are still current or have been modified by subsequent legislation.
+
+        This helps determine if:
+        - The found excerpts are still valid
+        - You need to search newer documents that modified these provisions
+        - The legal text has been repealed or updated
+
+        Args:
+            document_type: The type of document (e.g. 'lege')
+            number: The number of the document
+            year: The year the document was issued
+            issuer: The issuing authority of the document (e.g. 'Parlamentul')
+
+        Returns:
+            Dictionary containing document info and list of changes made to it
+        """
+
+        if search_service is None:
+            return {"document_found": False, "error": "Search service not initialized"}
+
+        if not document_type.strip():
+            return {"document_found": False, "error": "Document type cannot be empty"}
+
+        if number < 0:
+            return {
+                "document_found": False,
+                "error": "Document number cannot be negative",
+            }
+
+        if year < 0:
+            return {
+                "document_found": False,
+                "error": "Document year cannot be negative",
+            }
+
+        if not issuer.strip():
+            return {"document_found": False, "error": "Document issuer cannot be empty"}
+
+        try:
+            document = await search_service.try_get_exact_match(
+                document_type, number, year, issuer
+            )
+
+            if not document:
+                return {
+                    "document_found": False,
+                    "error": f"Document not found: {document_type} {number}/{year} from {issuer}",
+                }
+
+            result = {
+                "document_found": True,
+                "document_info": {
+                    "document_type": document_type,
+                    "number": document.number,
+                    "title": document.title,
+                    "issuer": document.issuer,
+                    "effective_date": document.effective_date,
+                },
+                "changes": document.changes if hasattr(document, 'changes') and document.changes else [],
+                "total_changes": len(document.changes) if hasattr(document, 'changes') and document.changes else 0,
+            }
+
+            result = _manage_response_size(result)
+            return result
+
+        except Exception as e:
+            logger.error(f"Document changes retrieval failed: {e}")
             return {"document_found": False, "error": str(e)}
 
 

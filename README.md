@@ -124,6 +124,7 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 - **`number_search`**: Search the legislation database for documents with numbers that may match query (broad search)
 - **`document_search`**: Find specific documents by exact type, number, year, and issuer
 - **`document_content_search`**: Attempts a more accuate text search within a specific identified document, returning contextual excerpts
+- **`document_changes`**: Retrieve changes made to a specific document to understand if found excerpts are still current
 - **`identify_legal_document`**: Convert natural language document descriptions (e.g., "Civil Code") to exact identification parameters
 - **`generic_document_guidance`**: Get guidance for finding specific documents
 - **`get_correct_issuer`**: Map issuer descriptions to correct legal terms
@@ -131,7 +132,7 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 #### Search Strategy
 
 For best results, use tools in this order:
-1. **For specific documents**: Use `identify_legal_document` → `document_content_search` 
+1. **For specific documents**: Use `identify_legal_document` → `document_content_search` → `document_changes` (if needed)
 2. **For exploration**: Use the broad search tools (`content_search`, `title_search`, `number_search`)
 3. **For precise document retrieval**: Use `document_search`
 
