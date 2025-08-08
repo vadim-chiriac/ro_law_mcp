@@ -223,15 +223,15 @@ def register_document_content_search(app):
         4. CONTEXT MATTERS: Legal provisions often reference each other - check surrounding articles
         5. POSITIONAL SEARCH: Use search_position + search_radius for targeted searches around known concepts
         
-        EFFECTIVE search query patterns:
-        - For termination: Try "încetarea", "denunțarea" (with definite articles)
-        - For obligations: Try "obligațiile", "răspunderea" 
-        - For rights: Try "drepturile"
-        
         POSITIONAL SEARCH WORKFLOW:
         - First search broadly: "contractul de locațiune" → get position_in_document from excerpts
         - Then search around that position: search_query="încetarea", search_position=<position>, search_radius=5000
         - This finds "încetarea" near the rental contract provisions, avoiding false matches elsewhere
+        
+        EFFECTIVE search query patterns:
+        - For termination: Try "încetarea", "denunțarea" (with definite articles)
+        - For obligations: Try "obligațiile", "răspunderea" 
+        - For rights: Try "drepturile"
 
         Args:
             document_type: The type of document (e.g. 'lege')

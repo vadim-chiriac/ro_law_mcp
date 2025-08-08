@@ -127,8 +127,10 @@ class SearchService:
         search_text = text
         position_offset = 0
         if search_position is not None:
-            start_pos = max(0, search_position - search_radius)
-            end_pos = min(len(text), search_position + search_radius)
+            # Use default radius if not specified
+            radius = search_radius if search_radius is not None else 10000
+            start_pos = max(0, search_position - radius)
+            end_pos = min(len(text), search_position + radius)
             search_text = text[start_pos:end_pos]
             position_offset = start_pos
         
