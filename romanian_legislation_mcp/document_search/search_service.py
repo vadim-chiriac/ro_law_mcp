@@ -129,7 +129,6 @@ class SearchService:
                     "document_type": document_type,
                     "title": document.title,
                     "issuer": issuer,
-                    "changes": document.changes
                 },
                 "excerpts": [],
                 "total_matches": 0,
@@ -162,13 +161,12 @@ class SearchService:
         return {
             "document_found": True,
             "document_info": {
-                "title": document.title,
                 "document_type": document_type,
-                "number": number,
-                "year": year,
-                "issuer": issuer,
+                "title": document.title,
+                "issuer": document.issuer,
+                "effective_date": document.effective_date,
+                "changes": document.changes,
                 "document_url": getattr(document, "url", None),
-                "effective_date": getattr(document, "effective_date", None),
             },
             "excerpts": excerpts,
             "total_matches": len(matches),

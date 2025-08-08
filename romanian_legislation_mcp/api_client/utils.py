@@ -87,13 +87,11 @@ def create_fuzzy_romanian_pattern(query: str) -> str:
         'S': '[SȘŞ]', 'Ș': '[SȘŞ]', 'Ş': '[SȘŞ]',
     }
     
-    # Process character by character to avoid conflicts
     pattern_parts = []
     for char in query:
         if char in char_variations:
             pattern_parts.append(char_variations[char])
         else:
-            # Escape special regex characters for non-Romanian chars
             pattern_parts.append(re.escape(char))
     
     return ''.join(pattern_parts)
