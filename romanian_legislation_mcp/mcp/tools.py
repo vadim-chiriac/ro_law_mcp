@@ -201,6 +201,8 @@ def register_document_content_search(app):
         search_query: str,
         max_excerpts: int = 5,
         excerpt_context_chars: int = 500,
+        search_position: Optional[int] = None,
+        search_radius: int = 10000,
     ) -> dict:
         """Search for specific content within a identified legal document.
 
@@ -219,11 +221,17 @@ def register_document_content_search(app):
         2. START GENERAL: Search for main legal concepts first, then refine for specific aspects
         3. INCREMENTAL SEARCH: If no results with specific terms, try broader related terms
         4. CONTEXT MATTERS: Legal provisions often reference each other - check surrounding articles
+        5. POSITIONAL SEARCH: Use search_position + search_radius for targeted searches around known concepts
         
         EFFECTIVE search query patterns:
         - For termination: Try "încetarea", "denunțarea" (with definite articles)
         - For obligations: Try "obligațiile", "răspunderea" 
         - For rights: Try "drepturile"
+        
+        POSITIONAL SEARCH WORKFLOW:
+        - First search broadly: "contractul de locațiune" → get position_in_document from excerpts
+        - Then search around that position: search_query="încetarea", search_position=<position>, search_radius=5000
+        - This finds "încetarea" near the rental contract provisions, avoiding false matches elsewhere
 
         Args:
             document_type: The type of document (e.g. 'lege')
@@ -233,6 +241,8 @@ def register_document_content_search(app):
             search_query: What to search for within that document (start broad, then refine)
             max_excerpts: Maximum number of relevant excerpts to return (default: 5)
             excerpt_context_chars: Characters of context around each match (default: 500)
+            search_position: Optional position in document to center search around (from previous search results)
+            search_radius: Characters before/after search_position to search within (default: 10000)
 
         Returns:
             Dictionary containing document info and matching excerpts with context
@@ -272,6 +282,18 @@ def register_document_content_search(app):
                 "error": "Excerpt context chars cannot be negative",
             }
 
+        if search_position is not None and search_position < 0:
+            return {
+                "document_found": False,
+                "error": "Search position cannot be negative",
+            }
+
+        if search_radius <= 0:
+            return {
+                "document_found": False,
+                "error": "Search radius must be positive",
+            }
+
         try:
             result = await search_service.document_content_search(
                 document_type=document_type,
@@ -281,6 +303,8 @@ def register_document_content_search(app):
                 search_query=search_query,
                 max_excerpts=max_excerpts,
                 excerpt_context_chars=excerpt_context_chars,
+                search_position=search_position,
+                search_radius=search_radius,
             )
 
             return result

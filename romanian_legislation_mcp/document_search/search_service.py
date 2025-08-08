@@ -89,6 +89,8 @@ class SearchService:
         search_query: str,
         max_excerpts: int = 5,
         excerpt_context_chars: int = 500,
+        search_position: Optional[int] = None,
+        search_radius: Optional[int] = 10000,
     ) -> Dict[str, Any]:
         """Search for specific content within a identified legal document.
 
@@ -99,6 +101,8 @@ class SearchService:
         :param search_query: What to search for within that document
         :param max_excerpts: Maximum number of relevant excerpts to return
         :param excerpt_context_chars: Characters of context around each match
+        :param search_position: Optional position in document to center search around
+        :param search_radius: Characters before/after search_position to search within
         :return: Dictionary containing document info and matching excerpts
         """
 
@@ -118,9 +122,19 @@ class SearchService:
             }
 
         text = document.text
+        
+        # If search_position is specified, limit search to that region
+        search_text = text
+        position_offset = 0
+        if search_position is not None:
+            start_pos = max(0, search_position - search_radius)
+            end_pos = min(len(text), search_position + search_radius)
+            search_text = text[start_pos:end_pos]
+            position_offset = start_pos
+        
         fuzzy_pattern = create_fuzzy_romanian_pattern(search_query)
         query_pattern = re.compile(fuzzy_pattern, re.IGNORECASE)
-        matches = list(query_pattern.finditer(text))
+        matches = list(query_pattern.finditer(search_text))
 
         if not matches:
             return {
@@ -139,13 +153,17 @@ class SearchService:
         text_len = len(text)
 
         for i, match in enumerate(matches[:max_excerpts]):
-            start_pos = max(0, match.start() - excerpt_context_chars)
-            end_pos = min(text_len, match.end() + excerpt_context_chars)
+            # Adjust match positions to account for position_offset
+            actual_match_start = match.start() + position_offset
+            actual_match_end = match.end() + position_offset
+            
+            start_pos = max(0, actual_match_start - excerpt_context_chars)
+            end_pos = min(text_len, actual_match_end + excerpt_context_chars)
 
             excerpt_text = text[start_pos:end_pos]
 
-            match_start_in_excerpt = match.start() - start_pos
-            match_end_in_excerpt = match.end() - start_pos
+            match_start_in_excerpt = actual_match_start - start_pos
+            match_end_in_excerpt = actual_match_end - start_pos
 
             excerpts.append(
                 {
@@ -153,8 +171,8 @@ class SearchService:
                     "text": excerpt_text,
                     "match_start_in_excerpt": match_start_in_excerpt,
                     "match_end_in_excerpt": match_end_in_excerpt,
-                    "position_in_document": match.start(),
-                    "match_length": match.end() - match.start(),
+                    "position_in_document": actual_match_start,
+                    "match_length": actual_match_end - actual_match_start,
                 }
             )
 
