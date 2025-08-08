@@ -73,16 +73,22 @@ def register_content_search(app):
         Do not use if user is looking for a specific document - use document_search instead.
         For precise content search within a known document, use document_content_search.
 
+        ROMANIAN LEGAL TERMINOLOGY: Legal concepts typically use DEFINITE ARTICLES:
+        - "contract" → "contractul" (the contract)
+        - "proprietate" → "proprietatea" (the property) 
+        - "obligatie" → "obligatia" (the obligation)
+        - Also try plural forms: "contractele" (the contracts), "obligatiile" (the obligations)
+
         SEARCH STRATEGY for Romanian legal documents:
-        1. START BROAD: Use general legal concepts first (e.g., "contract de depozit", "dreptul de proprietate")
+        1. START BROAD: Use general legal concepts first (e.g., "contractul de depozit", "dreptul de proprietate")
         2. AVOID combining multiple specific terms in one search (e.g., avoid "contract depozit încetare terminare")
         3. HIERARCHICAL APPROACH: Find the main legal institution first, then search within it for specifics
         4. Romanian legal structure: Codes are organized by main topics → chapters → specific provisions
         
         EXAMPLES of effective search patterns:
-        - For storage contract termination: First search "contract de depozit", then search within results for termination provisions
+        - For storage contract termination: First search "contractul de depozit", then search within results for termination provisions
         - For property rights: First search "dreptul de proprietate", then narrow to specific aspects
-        - For employment issues: First search "contract de muncă", then search specific clauses
+        - For employment issues: First search "contractul de muncă", then search specific clauses
 
         Args:
             query: Search query (start with broad legal concepts, avoid combining multiple specific terms)
@@ -201,6 +207,12 @@ def register_document_content_search(app):
         First use identify_legal_document or other tools to get the exact document details,
         then use this tool to search within that document's content.
 
+        ROMANIAN LEGAL TERMINOLOGY: Legal concepts typically use DEFINITE ARTICLES:
+        - "contract" → "contractul" (the contract)
+        - "proprietate" → "proprietatea" (the property)
+        - "obligatie" → "obligatia" (the obligation)
+        - Also try plural forms: "contractele" (the contracts), "obligatiile" (the obligations)
+
         SEARCH STRATEGY within Romanian legal documents:
         1. LEGAL HIERARCHY: Romanian codes follow: Title → Chapter → Section → Article → Paragraph
         2. START GENERAL: Search for main legal concepts first, then refine for specific aspects
@@ -208,9 +220,9 @@ def register_document_content_search(app):
         4. CONTEXT MATTERS: Legal provisions often reference each other - check surrounding articles
         
         EFFECTIVE search query patterns:
-        - For termination: Try "încetare", "denunțare"separately
-        - For obligations: Try "obligaţii", "răspunderea" 
-        - For rights: Try "drepturi"
+        - For termination: Try "încetarea", "denunțarea" (with definite articles)
+        - For obligations: Try "obligațiile", "răspunderea" 
+        - For rights: Try "drepturile"
 
         Args:
             document_type: The type of document (e.g. 'lege')
