@@ -22,7 +22,7 @@ This MCP server enables AI assistants to search and retrieve Romanian legislatio
 - **Multiple Search Methods**: Search by content, title, document number, or exact identification
 - **Document Content Search**: Precise text search within specific identified documents with contextual excerpts
 - **Document Changes Tracking**: Retrieves amendment information since the API only provides original document text, not consolidated versions
-- **Smart Mappings**: Handles various document type and issuer name variations
+- **Smart Mappings**: Handles various document type and issuer name variations with centralized mapping files
 - **Size Management**: Automatically manages response sizes for optimal performance with AI assistants
 - **MCP Protocol**: Compatible with Claude Desktop and other MCP-enabled applications
 
@@ -43,7 +43,7 @@ This MCP server enables AI assistants to search and retrieve Romanian legislatio
    ```
    MCP_PORT=5000
    MCP_HOSTNAME=localhost
-   WSDL_URL=https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl
+   WSDL_URL=https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl # SOAP API URL
    CONNECTION_TIMEOUT=10
    READ_TIMEOUT=30
    
@@ -123,7 +123,7 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 - **`title_search`**: Search the legislation database for documents with titles that may match query (broad search)  
 - **`number_search`**: Search the legislation database for documents with numbers that may match query (broad search)
 - **`document_search`**: Find specific documents by exact type, number, year, and issuer
-- **`document_content_search`**: Precise text search within a specific identified document, returning contextual excerpts
+- **`document_content_search`**: Attempts a more accuate text search within a specific identified document, returning contextual excerpts
 - **`identify_legal_document`**: Convert natural language document descriptions (e.g., "Civil Code") to exact identification parameters
 - **`generic_document_guidance`**: Get guidance for finding specific documents
 - **`get_correct_issuer`**: Map issuer descriptions to correct legal terms
@@ -142,7 +142,7 @@ For best results, use tools in this order:
 - **Rate Limits**: Subject to any rate limiting imposed by the government API
 - **Document Consolidation**: The SOAP API only provides original document text, not consolidated versions that incorporate amendments. While we retrieve amendment information to help LLMs understand what has changed, we cannot automatically build the current consolidated form of a document from the base text plus amendments
 - **Historical Changes**: Change tracking depends on the availability of data in the government system
-- **Document Identification Mappings**: The `identify_legal_document` tool relies on hardcoded mappings for major Romanian legal codes (Civil Code, Criminal Code, etc.). These mappings may become outdated if document numbers, years, or legal references change over time. Users should verify document details through official sources for critical applications
+- **Document Identification Mappings**: The `identify_legal_document` tool uses centralized mappings for major Romanian legal codes (Civil Code, Criminal Code, etc.) stored in `legal_document_mappings.py`. These mappings may become outdated if document numbers, years, or legal references change over time. Users should verify document details through official sources for critical applications
 
 ## License
 
