@@ -167,7 +167,7 @@ class SearchService:
                 "year": year,
                 "issuer": issuer,
                 "document_url": getattr(document, "url", None),
-                "publication_date": getattr(document, "publication_date", None),
+                "effective_date": getattr(document, "effective_date", None),
             },
             "excerpts": excerpts,
             "total_matches": len(matches),

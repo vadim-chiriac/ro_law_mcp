@@ -67,8 +67,19 @@ def register_content_search(app):
         Do not use if user is looking for a specific document - use document_search instead.
         For precise content search within a known document, use document_content_search.
 
+        SEARCH STRATEGY for Romanian legal documents:
+        1. START BROAD: Use general legal concepts first (e.g., "contract de depozit", "dreptul de proprietate")
+        2. AVOID combining multiple specific terms in one search (e.g., avoid "contract depozit încetare terminare")
+        3. HIERARCHICAL APPROACH: Find the main legal institution first, then search within it for specifics
+        4. Romanian legal structure: Codes are organized by main topics → chapters → specific provisions
+        
+        EXAMPLES of effective search patterns:
+        - For storage contract termination: First search "contract de depozit", then search within results for termination provisions
+        - For property rights: First search "dreptul de proprietate", then narrow to specific aspects
+        - For employment issues: First search "contract de muncă", then search specific clauses
+
         Args:
-            query: Search query
+            query: Search query (start with broad legal concepts, avoid combining multiple specific terms)
             max_results: Maximum number of results to return (optional, defaults to 10)
         """
 
@@ -184,12 +195,24 @@ def register_document_content_search(app):
         First use identify_legal_document or other tools to get the exact document details,
         then use this tool to search within that document's content.
 
+        SEARCH STRATEGY within Romanian legal documents:
+        1. LEGAL HIERARCHY: Romanian codes follow: Title → Chapter → Section → Article → Paragraph
+        2. START GENERAL: Search for main legal concepts first, then refine for specific aspects
+        3. INCREMENTAL SEARCH: If no results with specific terms, try broader related terms
+        4. CONTEXT MATTERS: Legal provisions often reference each other - check surrounding articles
+        
+        EFFECTIVE search query patterns:
+        - For termination: Try "încetare", "terminare", "desfiinţare", "expirare" separately
+        - For obligations: Try "obligaţii", "datorii", "răspunderi" 
+        - For rights: Try "drepturi", "împuterniciri", "competenţe"
+        - For procedures: Try "procedură", "modalitate", "condiţii"
+
         Args:
             document_type: The type of document (e.g. 'lege')
             number: The number of the document
             year: The year the document was issued
             issuer: The issuing authority of the document (e.g. 'Parlamentul')
-            search_query: What to search for within that document
+            search_query: What to search for within that document (start broad, then refine)
             max_excerpts: Maximum number of relevant excerpts to return (default: 5)
             excerpt_context_chars: Characters of context around each match (default: 500)
 
