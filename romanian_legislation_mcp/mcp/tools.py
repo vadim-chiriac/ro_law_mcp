@@ -525,7 +525,6 @@ def register_document_identification_tool(app):
                 indent=2,
             )
 
-        # No matches found
         common_documents = [
             {"name": "Civil Code (Codul Civil)", "search_hint": "codul civil"},
             {"name": "Criminal Code (Codul Penal)", "search_hint": "codul penal"},
