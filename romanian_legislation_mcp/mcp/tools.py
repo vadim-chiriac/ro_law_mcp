@@ -216,10 +216,13 @@ def register_document_content_search(app):
 
         SEARCH STRATEGY within Romanian legal documents:
         1. LEGAL HIERARCHY: Romanian codes follow: Title → Chapter → Section → Article → Paragraph
-        2. START GENERAL: Search for main legal concepts first, then refine for specific aspects
-        3. INCREMENTAL SEARCH: If no results with specific terms, try broader related terms
-        4. CONTEXT MATTERS: Legal provisions often reference each other - check surrounding articles
-        5. POSITIONAL SEARCH: Use search_position + search_radius for targeted searches around known concepts
+        2. START GENERAL: Search for main legal concepts first, to find their position in the document content
+        3. POSITIONAL SEARCH: Use search_position + search_radius for targeted searches around known concepts. 
+        If we are dealing with a multiple term search, do not use the main legal concept again. 
+        Instead, try to identify the specific term around the position where you identified the general one.
+        4. INCREMENTAL SEARCH: If no results with specific terms after positional search, try broader related terms
+        5. CHANGES: If a match was found, use the "Document Changes" tool to see if the legal provision was subject to changes. 
+        If yes, search the contents of the document which made the changes to retrieve the updated legal provision.
         
         POSITIONAL SEARCH WORKFLOW:
         - First search broadly: "contractul de locațiune" → get position_in_document from excerpts

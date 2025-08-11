@@ -170,7 +170,7 @@ class SoapClient:
 
         return parsed_results
 
-    def _parse_single_record(self, record: dict) -> Optional[LegislationDocument]:
+    def _parse_single_record(self, record: dict, include_changes: bool = False) -> Optional[LegislationDocument]:
         """Parsed a single raw record from the SOAP API response.
 
         :param record: The record to parse .
@@ -192,7 +192,7 @@ class SoapClient:
             return None
 
         doc_changes = None
-        if url and self.changes_parser:
+        if url and self.changes_parser and include_changes:
             try:
                 doc_changes = self.changes_parser.get_document_changes(url)
             except Exception as e:
