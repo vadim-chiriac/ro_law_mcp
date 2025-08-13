@@ -5,6 +5,7 @@ from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
 from romanian_legislation_mcp.document_search.issuer_mappings import get_canonical_issuer
 from romanian_legislation_mcp.document_search.document_type_mappings import get_canonical_document_type
+from romanian_legislation_mcp.document_cache.document_cache import DocumentCache
 
 logger = logging.getLogger(__name__)
 
@@ -13,13 +14,15 @@ class ExactDocumentFinder:
     """Class responsible for trying to retrive a document by its unique identifiers,
     meaning type, number, year and issuer"""
 
-    def __init__(self, legislation_client: SoapClient):
+    def __init__(self, legislation_client: SoapClient, enable_cache: bool = True):
         """Initializes a new `ExactDocumentFinder`
 
         :param legislation_client: The underlying `SoapClient` for searching
+        :param enable_cache: Whether to enable document caching. Defaults to True.
         """
 
         self.client = legislation_client
+        self.cache = DocumentCache() if enable_cache else None
 
     async def find_exact_document(
         self,
@@ -35,6 +38,12 @@ class ExactDocumentFinder:
         :param year: The issuance year of the document. This might be different than publication year or entry into force year.
         :param issuer: The issuing authority of the document (e.g. Guvernul României)
         """
+        # Check cache first
+        if self.cache:
+            cached_result = self.cache.get(document_type, number, year, issuer)
+            if cached_result:
+                return cached_result
+        
         result = await self._try_search_strategy(
             document_type,
             number,
@@ -44,6 +53,9 @@ class ExactDocumentFinder:
         )
         
         if result:
+            # Cache the result before returning
+            if self.cache:
+                self.cache.put(result, document_type, number, year, issuer)
             return result
         
         result = await self._try_search_strategy(
@@ -53,6 +65,10 @@ class ExactDocumentFinder:
             issuer,
             strategy="alternate"
         )
+        
+        # Cache the result if found
+        if result and self.cache:
+            self.cache.put(result, document_type, number, year, issuer)
         
         return result
     

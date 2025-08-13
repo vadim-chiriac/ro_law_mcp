@@ -3,3 +3,6 @@
 __pycache__
 */*/__pycache__
 .vscode
+.document_cache
+CLAUDE.md
+CLAUDE.local.md

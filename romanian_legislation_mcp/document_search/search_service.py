@@ -64,7 +64,7 @@ class SearchService:
 
     async def try_get_exact_match(
         self, document_type: str, number: int, year: int, issuer: str
-    ):
+    ) -> Optional[LegislationDocument]:
         """Tries to get an exact match from document identifiers.
 
         :param document_type: The type of document (e.g. 'lege', 'hotarare')
@@ -123,18 +123,16 @@ class SearchService:
 
         text = document.text
         
-        # If search_position is specified, limit search to that region
         search_text = text
         position_offset = 0
         if search_position is not None:
-            # Use default radius if not specified
             radius = search_radius if search_radius is not None else 10000
             start_pos = max(0, search_position - radius)
             end_pos = min(len(text), search_position + radius)
             search_text = text[start_pos:end_pos]
             position_offset = start_pos
         
-        fuzzy_pattern = create_fuzzy_romanian_pattern(search_query)
+        fuzzy_pattern = create_fuzzy_romanian_pattern(search_query, allow_partial_words=True)
         query_pattern = re.compile(fuzzy_pattern, re.IGNORECASE)
         matches = list(query_pattern.finditer(search_text))
 
@@ -155,7 +153,6 @@ class SearchService:
         text_len = len(text)
 
         for i, match in enumerate(matches[:max_excerpts]):
-            # Adjust match positions to account for position_offset
             actual_match_start = match.start() + position_offset
             actual_match_end = match.end() + position_offset
             
