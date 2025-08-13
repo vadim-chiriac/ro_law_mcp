@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DocumentModelArticle:
-    number: int
     text: str
     pos_in_doc: int
 

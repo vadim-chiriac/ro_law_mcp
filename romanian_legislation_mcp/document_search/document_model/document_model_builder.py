@@ -55,7 +55,15 @@ class DocumentModelBuilder:
                         title_text, title_start_pos = self._get_element_text_range(
                             j, book.titles
                         )
-                        self._get_chapters(title_text, parent=title, pos_in_doc=title_start_pos)
+                        self._get_chapters(
+                            title_text, parent=title, pos_in_doc=title_start_pos
+                        )
+                        if title.chapters:
+                            for k, chapter in enumerate(title.chapters):
+                                chapter_text, chapter_start_pos = (
+                                    self._get_element_text_range(k, title.chapters)
+                                )
+                                self._get_articles(chapter_text, chapter, chapter_start_pos)
         else:
             self._get_titles(self.document.text, parent=None, pos_in_doc=0)
             if self.model.titles:
@@ -63,7 +71,9 @@ class DocumentModelBuilder:
                     title_text, title_start_pos = self._get_element_text_range(
                         i, self.model.titles
                     )
-                    self._get_chapters(title_text, parent=title, pos_in_doc=title_start_pos)
+                    self._get_chapters(
+                        title_text, parent=title, pos_in_doc=title_start_pos
+                    )
             else:
                 self._get_chapters(self.document.text, parent=None, pos_in_doc=0)
 
@@ -179,7 +189,7 @@ class DocumentModelBuilder:
         self._extract_element_and_recurse(
             doc_text, "Capitolul", "Chapter", parent=parent, pos_in_doc=pos_in_doc
         )
-    
+
     def _get_articles(self, doc_text: str, parent=None, pos_in_doc: int = 0):
         self._extract_element_and_recurse(
             doc_text, "Articolul", "Article", parent=parent, pos_in_doc=pos_in_doc
@@ -213,33 +223,33 @@ class DocumentModelBuilder:
             return False
 
         return True
-    
+
     def _validate_chapter(self, chapter_name_row: str) -> bool:
         chapter_name_row = chapter_name_row.strip()
-        
+
         words = chapter_name_row.split()
         if len(words) == 0:
             return False
-            
+
         first_word = words[0]
         if first_word not in ROMAN_NUMERALS:
             return False
-        
+
         if len(chapter_name_row) > 200:
             return False
-            
+
         return True
-    
+
     def _validate_article(self, article_name_row: str) -> bool:
         article_name_row = article_name_row.strip()
-        
+
         parts = article_name_row.split()
         if len(parts) < 1:
             return False
-            
+
         try:
             int(parts[0])
         except ValueError:
             return False
-                    
+
         return True
