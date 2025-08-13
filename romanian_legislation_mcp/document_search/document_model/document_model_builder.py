@@ -43,58 +43,34 @@ class DocumentModelBuilder:
 
     def build_document_model(self) -> DocumentModel:
         self.model = DocumentModel()
-        self._get_books(self.document.text, parent=None, pos_in_doc=0)
-        if len(self.model.books) > 0:
-            for i, book in enumerate(self.model.books):
-                book_text, book_start_pos = self._get_element_text_range(
-                    i, self.model.books
-                )
-                self._get_titles(book_text, parent=book, pos_in_doc=book_start_pos)
-                if book.titles:
-                    for j, title in enumerate(book.titles):
-                        title_text, title_start_pos = self._get_element_text_range(
-                            j, book.titles
-                        )
-                        self._get_chapters(
-                            title_text, parent=title, pos_in_doc=title_start_pos
-                        )
-                        if title.chapters:
-                            for k, chapter in enumerate(title.chapters):
-                                chapter_text, chapter_start_pos = (
-                                    self._get_element_text_range(k, title.chapters)
-                                )
-                                self._get_articles(chapter_text, chapter, chapter_start_pos)
-        else:
-            self._get_titles(self.document.text, parent=None, pos_in_doc=0)
-            if self.model.titles:
-                for i, title in enumerate(self.model.titles):
-                    title_text, title_start_pos = self._get_element_text_range(
-                        i, self.model.titles
-                    )
-                    self._get_chapters(
-                        title_text, parent=title, pos_in_doc=title_start_pos
-                    )
-                    if title.chapters:
-                        for k, chapter in enumerate(title.chapters):
-                            chapter_text, chapter_start_pos = self._get_element_text_range(
-                                k, title.chapters
-                            )
-                            self._get_articles(chapter_text, chapter, chapter_start_pos)
-                    else:
-                        self._get_articles(title_text, title, title_start_pos)
-            else:
-                self._get_chapters(self.document.text, parent=None, pos_in_doc=0)
-                if self.model.chapters:
-                    for i, chapter in enumerate(self.model.chapters):
-                        chapter_text, chapter_start_pos = self._get_element_text_range(
-                            i, self.model.chapters
-                        )
-                        self._get_articles(chapter_text, chapter, chapter_start_pos)
-                else:
-                    self._get_articles(self.document.text, parent=None, pos_in_doc=0)
-
+        # Start with the full document and build hierarchy top-down
+        self._build_hierarchy(self.document.text, parent=None, pos_in_doc=0)
         self.model.log()
-        pass
+
+    def _build_hierarchy(self, text_content: str, parent=None, pos_in_doc: int = 0):
+        """Build document hierarchy by trying each structural level in order."""
+        # Try to find structural elements in hierarchical order
+        hierarchy_levels = [
+            ("Book", self._get_books, lambda p: p.books if hasattr(p, 'books') else self.model.books),
+            ("Title", self._get_titles, lambda p: p.titles if hasattr(p, 'titles') else self.model.titles), 
+            ("Chapter", self._get_chapters, lambda p: p.chapters if hasattr(p, 'chapters') else self.model.chapters),
+            ("Article", self._get_articles, lambda p: p.articles if hasattr(p, 'articles') else self.model.articles)
+        ]
+        
+        # Find the highest level that exists in this text
+        for level_name, extractor_func, children_getter in hierarchy_levels:
+            extractor_func(text_content, parent=parent, pos_in_doc=pos_in_doc)
+            children = children_getter(parent)
+            
+            if children:  # Found elements at this level
+                # Process each child element recursively
+                for i, child in enumerate(children):
+                    child_text, child_start_pos = self._get_element_text_range(i, children)
+                    # Recursively build the next level down
+                    self._build_hierarchy(child_text, parent=child, pos_in_doc=child_start_pos)
+                return  # Stop here - we found the appropriate level
+        
+        # If we get here, no structural elements were found (shouldn't happen for valid documents)
 
     def _build_document_structure(self):
         pass
