@@ -41,10 +41,8 @@ class DocumentModelBuilder:
             curr_element_header = self._find_next_valid_header(text[search_start:], element_type, search_start)            
             if not curr_element_header:
                 break
-            logger.info(f"Found current header: {curr_element_header}")
             next_search_start = curr_element_header["header_end"]
             next_element_header = self._find_next_valid_header(text[next_search_start:], element_type, next_search_start)
-            logger.info(f"Found next header: {next_element_header}")
             if not next_element_header:
                 break
             
