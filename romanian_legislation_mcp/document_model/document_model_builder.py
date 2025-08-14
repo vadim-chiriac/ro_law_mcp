@@ -87,28 +87,23 @@ class DocumentModelBuilder:
                     title_text, title_start_pos = self._get_element_text_range(i, titles)
                     self._build_hierarchy(title_text, parent=title, pos_in_doc=title_start_pos)
             else:
-                logger.info(f"No sub-titles found under {type(parent).__name__}: {parent.name}, looking for chapters directly")
                 self._get_chapters(text_content, parent=parent, pos_in_doc=pos_in_doc)
                 if self._has_chapters(parent):
                     chapters = self._get_children_chapters(parent)
-                    logger.info(f"Processing {len(chapters)} chapters under {type(parent).__name__}: {parent.name}")
                     for i, chapter in enumerate(chapters):
                         chapter_text, chapter_start_pos = self._get_element_text_range(i, chapters)
                         self._build_hierarchy(chapter_text, parent=chapter, pos_in_doc=chapter_start_pos)
                 else:
-                    logger.info(f"No chapters found under {type(parent).__name__}: {parent.name}, looking for articles directly")
                     self._get_articles(text_content, parent=parent, pos_in_doc=pos_in_doc)
             
         elif hasattr(parent, 'chapters'):
             self._get_chapters(text_content, parent=parent, pos_in_doc=pos_in_doc)
             if self._has_chapters(parent):
                 chapters = self._get_children_chapters(parent)
-                logger.info(f"Processing {len(chapters)} chapters under {type(parent).__name__}: {parent.name}")
                 for i, chapter in enumerate(chapters):
                     chapter_text, chapter_start_pos = self._get_element_text_range(i, chapters)
                     self._build_hierarchy(chapter_text, parent=chapter, pos_in_doc=chapter_start_pos)
             else:
-                logger.info(f"No chapters found under {type(parent).__name__}: {parent.name}, looking for articles directly")
                 self._get_articles(text_content, parent=parent, pos_in_doc=pos_in_doc)
                 
         elif hasattr(parent, 'article_numbers'):  
@@ -141,12 +136,9 @@ class DocumentModelBuilder:
             element_text = self.document.text[
                 current_element.pos_in_doc : next_element.pos_in_doc
             ]
-            logger.info(f"Element {element_index}: Using next element boundary. Text length: {len(element_text)}")
         else:
-            # For the last element, find the next boundary (title, book, etc.)
             end_pos = self._find_next_hierarchy_boundary(current_element.pos_in_doc)
             element_text = self.document.text[current_element.pos_in_doc : end_pos]
-            logger.info(f"Last element {element_index}: Using boundary detection. Start: {current_element.pos_in_doc}, End: {end_pos}, Text length: {len(element_text)}")
 
         return element_text, current_element.pos_in_doc
 
@@ -155,12 +147,9 @@ class DocumentModelBuilder:
         Note: Chapters are not considered boundaries since they should be contained within titles."""
         text_after = self.document.text[start_pos:]
         
-        # Look for the next occurrence of structural keywords
-        # Only include higher-level boundaries (Book, Title) not chapters
         boundaries = []
         keywords = ["Cartea", "Titlul"]
         
-        # Skip past the current element first by finding the end of the current line
         current_line_end = text_after.find('\n')
         search_start = current_line_end + 1 if current_line_end != -1 else 1
         
@@ -168,14 +157,11 @@ class DocumentModelBuilder:
             pos = text_after.find(keyword, search_start)
             if pos != -1:
                 boundaries.append(start_pos + pos)
-                logger.info(f"Found boundary '{keyword}' at absolute position {start_pos + pos}")
         
         if boundaries:
             result = min(boundaries)
-            logger.info(f"Selected boundary at position {result} (length from start: {result - start_pos})")
             return result
         else:
-            logger.info(f"No boundaries found after position {start_pos}, using end of document")
             return len(self.document.text)  # End of document if no boundaries found
 
     def _extract_element_and_recurse(
@@ -337,7 +323,6 @@ class DocumentModelBuilder:
             return False
         
         first_word = words[0]
-        # Books can be numbered with Roman numerals (like "I", "II", etc.) or with letters like "a", "b"
         if first_word not in ROMAN_NUMERALS and not (len(first_word) == 1 and first_word.isalpha()):
             return False
 
