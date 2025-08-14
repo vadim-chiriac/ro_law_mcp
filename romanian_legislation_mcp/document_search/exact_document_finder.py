@@ -3,6 +3,7 @@ import logging
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
+from romanian_legislation_mcp.document_search.document_changes_parser import DocumentChangesParser
 from romanian_legislation_mcp.document_search.issuer_mappings import get_canonical_issuer
 from romanian_legislation_mcp.document_search.document_type_mappings import get_canonical_document_type
 from romanian_legislation_mcp.document_cache.document_cache import DocumentCache
@@ -22,6 +23,7 @@ class ExactDocumentFinder:
         """
 
         self.client = legislation_client
+        self.changes_parser = DocumentChangesParser()
         self.cache = DocumentCache() if enable_cache else None
 
     async def find_exact_document(
@@ -38,7 +40,6 @@ class ExactDocumentFinder:
         :param year: The issuance year of the document. This might be different than publication year or entry into force year.
         :param issuer: The issuing authority of the document (e.g. Guvernul României)
         """
-        # Check cache first
         if self.cache:
             cached_result = self.cache.get(document_type, number, year, issuer)
             if cached_result:
@@ -52,8 +53,9 @@ class ExactDocumentFinder:
             strategy="standard"
         )
         
+        doc_changes = self.changes_parser.get_document_changes(result.url)
+        result.changes = doc_changes
         if result:
-            # Cache the result before returning
             if self.cache:
                 self.cache.put(result, document_type, number, year, issuer)
             return result

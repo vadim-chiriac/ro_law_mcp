@@ -6,7 +6,6 @@ import logging
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
 from romanian_legislation_mcp.api_client.utils import extract_field_safely, extract_date_safely
-from romanian_legislation_mcp.document_search.document_changes_parser import DocumentChangesParser
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +22,6 @@ class SoapClient:
         self.client: Client = None
         self.token: str = None
         self.token_expires_at = None
-        self.changes_parser: DocumentChangesParser = None
 
     @classmethod
     def create(
@@ -39,7 +37,6 @@ class SoapClient:
         instance = cls(wsdl_url, connection_timeout, read_timeout)
         try:
             instance.client = instance._create_soap_client()
-            instance.changes_parser = DocumentChangesParser(request_timeout=connection_timeout)
         except Exception as e:
             raise ConnectionError(f"Failed to create SOAP client: {e}")
 
@@ -170,7 +167,7 @@ class SoapClient:
 
         return parsed_results
 
-    def _parse_single_record(self, record: dict, include_changes: bool = False) -> Optional[LegislationDocument]:
+    def _parse_single_record(self, record: dict) -> Optional[LegislationDocument]:
         """Parsed a single raw record from the SOAP API response.
 
         :param record: The record to parse .
@@ -191,12 +188,7 @@ class SoapClient:
             logger.warning("Skipping record due to missing fields.")
             return None
 
-        doc_changes = None
-        if url and self.changes_parser and include_changes:
-            try:
-                doc_changes = self.changes_parser.get_document_changes(url)
-            except Exception as e:
-                logger.warning(f"Failed to parse changes for document {number}: {e}")
+
 
         parsed_result = LegislationDocument(
             title=title,
@@ -207,7 +199,6 @@ class SoapClient:
             text=text,
             publication=publication,
             url=url,
-            changes=doc_changes,
         )
 
         return parsed_result

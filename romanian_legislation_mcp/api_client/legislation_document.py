@@ -10,6 +10,6 @@ class LegislationDocument:
     issuer: str
     effective_date: str
     text: str
-    changes: dict
+    changes: Optional[dict] = None
     publication: Optional[str] = None
     url: Optional[str] = None

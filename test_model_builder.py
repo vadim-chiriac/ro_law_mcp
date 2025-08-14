@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
-from romanian_legislation_mcp.document_search.document_model.document_model_builder import (
+from romanian_legislation_mcp.document_model.document_model_builder import (
     DocumentModelBuilder,
 )
 from romanian_legislation_mcp.document_search.search_service import SearchService
@@ -25,6 +25,7 @@ app = FastMCP("Romanian Legislation MCP server")
 
 
 async def main():
+    logging.basicConfig(level=logging.INFO)
     logger.info("Initializing SOAP client...")
     client = SoapClient.create(
         wsdl_url=WSDL_URL,
@@ -36,11 +37,12 @@ async def main():
     logger.info("Starting search service...")
     search_service = SearchService(soap_client=client)
     civil_code = await search_service.try_get_exact_match(
-        document_type="lege", number=95, year=2006, issuer="Parlamentul"
+        document_type="lege", number=95, year=2006, issuer="parlamentul"
     )
     logger.info("Search service succesfully started.")
     builder = DocumentModelBuilder(civil_code)
     builder.build_document_model()
-
+    logger.info(builder.model.get_title(0))
+    # builder.model.log()
 
 asyncio.run(main())

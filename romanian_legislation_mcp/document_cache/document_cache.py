@@ -47,10 +47,8 @@ class DocumentCache:
         issuer_canonical = get_canonical_issuer(issuer)
         doc_type_canonical = get_canonical_document_type(document_type, issuer_canonical)
         
-        # Create a normalized identifier string
         cache_identifier = f"{doc_type_canonical}|{number}|{year}|{issuer_canonical}"
         
-        # Generate SHA256 hash for consistent, filesystem-safe filename
         return hashlib.sha256(cache_identifier.encode('utf-8')).hexdigest()
     
     def _get_cache_file_path(self, cache_key: str) -> Path:
@@ -87,14 +85,12 @@ class DocumentCache:
             with open(cache_file, 'r', encoding='utf-8') as f:
                 cached_data = json.load(f)
             
-            # Reconstruct LegislationDocument from cached data
             document = LegislationDocument(**cached_data)
             logger.info(f"Cache hit for document: {document_type} {number}/{year} from {issuer}")
             return document
             
         except (json.JSONDecodeError, TypeError, KeyError) as e:
             logger.warning(f"Failed to load cached document {cache_key}: {e}")
-            # Remove corrupted cache file
             cache_file.unlink(missing_ok=True)
             return None
     
@@ -112,7 +108,6 @@ class DocumentCache:
         cache_file = self._get_cache_file_path(cache_key)
         
         try:
-            # Convert dataclass to dictionary for JSON serialization
             document_data = asdict(document)
             
             with open(cache_file, 'w', encoding='utf-8') as f:

@@ -13,7 +13,6 @@ SIMPLE_TYPE_MAPPINGS = {
     "conven?ie":"conventie"
 }
 
-# Context-dependent mappings
 CONTEXT_DEPENDENT_MAPPINGS = {
     ("hotarare", "guvernul"): "hg",
 }

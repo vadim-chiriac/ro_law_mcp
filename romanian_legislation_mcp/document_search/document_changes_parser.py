@@ -11,7 +11,7 @@ class DocumentChangesParser:
     """Class that tries to obtain the list of changes to legal document.
     Unfortunately, the SOAP API does not return the consolidated form of legal documents.
     We can therefore try to get a list of changes made to the document to pass to clients, so
-    they know at least if a specific article or the document itself was changed/repelead/subject 
+    they know at least if a specific article or the document itself was changed/repelead/subject
     to other changes.
     """
 
@@ -31,6 +31,7 @@ class DocumentChangesParser:
             return {}
 
         try:
+            logger.info(f"Parsing changes for {url}")
             doc_id = url.split("/")[-1]
             return self._parse_changes(doc_id)
 
@@ -96,6 +97,10 @@ class DocumentChangesParser:
                 if target == "Actul":
                     target = "entire document"
 
+                article_no = self._try_get_article_number(target)
+                if article_no is not None:
+                    target = article_no
+                    
                 change_type_raw = cells[1].get_text(strip=True)
                 source_cell = cells[2]
 
@@ -113,7 +118,6 @@ class DocumentChangesParser:
                     source_text = source_cell.get_text(strip=True)
                     source_href = None
 
-                # Clean up multiple consecutive whitespaces in source text
                 if source_text:
                     source_text = re.sub(r"\s{2,}", " ", source_text)
 
@@ -152,7 +156,14 @@ class DocumentChangesParser:
             "SUSPENDATDE": "suspended",
             "REPUBLICAT": "republished",
             "INTRATINVIGOARE": "entered into force",
-            "RECTIFICATDE": "corrected"
+            "RECTIFICATDE": "corrected",
         }
 
         return type_mapping.get(raw_upper, raw_type.lower())
+    
+    def _try_get_article_number(self, raw_text: str):
+        try:
+            number = raw_text.split[1]
+            return number
+        except Exception as e:
+            return None

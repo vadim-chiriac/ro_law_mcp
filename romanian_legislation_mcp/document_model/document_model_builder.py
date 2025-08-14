@@ -2,7 +2,7 @@ import json
 import logging
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_search.document_model.document_model import (
+from romanian_legislation_mcp.document_model.document_model import (
     DocumentModel,
     DocumentModelArticle,
     DocumentModelBook,
@@ -43,37 +43,80 @@ class DocumentModelBuilder:
 
     def build_document_model(self) -> DocumentModel:
         self.model = DocumentModel()
-        # Start with the full document and build hierarchy top-down
         self._build_hierarchy(self.document.text, parent=None, pos_in_doc=0)
-        self.model.log()
+        self._add_changes()
 
+    # Legal doc are organized by element hierarchy. Big legal docs have all hierarchy elements:
+    # Book -> Title -> Chapter -> Article
+    # Smaller docs can skip book, title or chapter, while simple docs have only articles.
+    # Thus, we need to determine the structure of the document we are 
     def _build_hierarchy(self, text_content: str, parent=None, pos_in_doc: int = 0):
         """Build document hierarchy by trying each structural level in order."""
-        # Try to find structural elements in hierarchical order
-        hierarchy_levels = [
-            ("Book", self._get_books, lambda p: p.books if hasattr(p, 'books') else self.model.books),
-            ("Title", self._get_titles, lambda p: p.titles if hasattr(p, 'titles') else self.model.titles), 
-            ("Chapter", self._get_chapters, lambda p: p.chapters if hasattr(p, 'chapters') else self.model.chapters),
-            ("Article", self._get_articles, lambda p: p.articles if hasattr(p, 'articles') else self.model.articles)
-        ]
-        
-        # Find the highest level that exists in this text
-        for level_name, extractor_func, children_getter in hierarchy_levels:
-            extractor_func(text_content, parent=parent, pos_in_doc=pos_in_doc)
-            children = children_getter(parent)
+        if parent is None:
+            self._get_books(text_content, parent=parent, pos_in_doc=pos_in_doc)
+            if self._has_books(parent):
+                books = self._get_children_books(parent)
+                for i, book in enumerate(books):
+                    book_text, book_start_pos = self._get_element_text_range(i, books)
+                    self._build_hierarchy(book_text, parent=book, pos_in_doc=book_start_pos)
+                return
+                
+            self._get_titles(text_content, parent=parent, pos_in_doc=pos_in_doc)
+            if self._has_titles(parent):
+                titles = self._get_children_titles(parent)
+                for i, title in enumerate(titles):
+                    title_text, title_start_pos = self._get_element_text_range(i, titles)
+                    self._build_hierarchy(title_text, parent=title, pos_in_doc=title_start_pos)
+                return
+                
+            self._get_chapters(text_content, parent=parent, pos_in_doc=pos_in_doc)
+            if self._has_chapters(parent):
+                chapters = self._get_children_chapters(parent)
+                for i, chapter in enumerate(chapters):
+                    chapter_text, chapter_start_pos = self._get_element_text_range(i, chapters)
+                    self._build_hierarchy(chapter_text, parent=chapter, pos_in_doc=chapter_start_pos)
+                return
+                
+            self._get_articles(text_content, parent=parent, pos_in_doc=pos_in_doc)
             
-            if children:  # Found elements at this level
-                # Process each child element recursively
-                for i, child in enumerate(children):
-                    child_text, child_start_pos = self._get_element_text_range(i, children)
-                    # Recursively build the next level down
-                    self._build_hierarchy(child_text, parent=child, pos_in_doc=child_start_pos)
-                return  # Stop here - we found the appropriate level
-        
-        # If we get here, no structural elements were found (shouldn't happen for valid documents)
+        elif hasattr(parent, 'titles'):  
+            self._get_titles(text_content, parent=parent, pos_in_doc=pos_in_doc)
+            if self._has_titles(parent):
+                titles = self._get_children_titles(parent)
+                for i, title in enumerate(titles):
+                    title_text, title_start_pos = self._get_element_text_range(i, titles)
+                    self._build_hierarchy(title_text, parent=title, pos_in_doc=title_start_pos)
+            
+        elif hasattr(parent, 'chapters'):
+            self._get_chapters(text_content, parent=parent, pos_in_doc=pos_in_doc)
+            if self._has_chapters(parent):
+                chapters = self._get_children_chapters(parent)
+                for i, chapter in enumerate(chapters):
+                    chapter_text, chapter_start_pos = self._get_element_text_range(i, chapters)
+                    self._build_hierarchy(chapter_text, parent=chapter, pos_in_doc=chapter_start_pos)
+            else:
+                self._get_articles(text_content, parent=parent, pos_in_doc=pos_in_doc)
+                
+        elif hasattr(parent, 'article_numbers'):  # Chapters have article_numbers
+            self._get_articles(text_content, parent=parent, pos_in_doc=pos_in_doc)
 
-    def _build_document_structure(self):
-        pass
+    def _has_books(self, parent):
+        return hasattr(parent, 'books') and parent.books is not None and len(parent.books) > 0 if parent else len(self.model.books) > 0
+        
+    def _has_titles(self, parent):
+        return hasattr(parent, 'titles') and parent.titles is not None and len(parent.titles) > 0 if parent else len(self.model.titles) > 0
+        
+    def _has_chapters(self, parent):
+        return hasattr(parent, 'chapters') and parent.chapters is not None and len(parent.chapters) > 0 if parent else len(self.model.chapters) > 0
+        
+    def _get_children_books(self, parent):
+        return parent.books if parent else self.model.books
+        
+    def _get_children_titles(self, parent):
+        return parent.titles if parent else self.model.titles
+        
+    def _get_children_chapters(self, parent):
+        return parent.chapters if parent else self.model.chapters
 
     def _get_element_text_range(self, element_index: int, element_list):
         """Extract text range for a specific element from the document."""
@@ -85,9 +128,29 @@ class DocumentModelBuilder:
                 current_element.pos_in_doc : next_element.pos_in_doc
             ]
         else:
-            element_text = self.document.text[current_element.pos_in_doc :]
+            # For the last element, find the next boundary (title, book, etc.)
+            end_pos = self._find_next_hierarchy_boundary(current_element.pos_in_doc)
+            element_text = self.document.text[current_element.pos_in_doc : end_pos]
 
         return element_text, current_element.pos_in_doc
+
+    def _find_next_hierarchy_boundary(self, start_pos: int) -> int:
+        """Find the next structural boundary (book, title, chapter) after start_pos."""
+        text_after = self.document.text[start_pos:]
+        
+        # Look for the next occurrence of structural keywords
+        boundaries = []
+        keywords = ["Cartea", "Titlul", "Capitolul"]
+        
+        for keyword in keywords:
+            pos = text_after.find(keyword, 1)  # Start from position 1 to skip current element
+            if pos != -1:
+                boundaries.append(start_pos + pos)
+        
+        if boundaries:
+            return min(boundaries)
+        else:
+            return len(self.document.text)  # End of document if no boundaries found
 
     def _extract_element_and_recurse(
         self,
@@ -107,6 +170,9 @@ class DocumentModelBuilder:
             full_element_name_end = len(parent_text)
         else:
             full_element_name_end = element_name_start + part_element_name_end
+            
+        # Not super consistent, for book/title/chapter, element_name_row is just the name,
+        # for article it also includes (or only) content
         element_name_row = parent_text[element_name_start:full_element_name_end]
 
         element_pos_in_doc = pos_in_doc + element_name_start  # Position in full doc
@@ -159,13 +225,8 @@ class DocumentModelBuilder:
         self, element_type: str, element_name: str, pos_in_doc: int, parent=None
     ):
         """Create and add an element to its appropriate parent."""
-        if element_type == "Chapter":
-            chapter = DocumentModelChapter(name=element_name, pos_in_doc=pos_in_doc)
-            if parent is not None:
-                parent.add_child(chapter)
-            else:
-                self.model.add_chapter(chapter)
-        elif element_type == "Article":
+
+        if element_type == "Article":
             lines = element_name.split('\n', 1)
             header_line = lines[0].strip()
             article_body = lines[1].strip() if len(lines) > 1 else ""
@@ -187,11 +248,17 @@ class DocumentModelBuilder:
                         pos_in_doc=pos_in_doc
                     )
                     if parent is not None:
-                        parent.add_child(article)
-                    else:
-                        self.model.add_article(article)
+                        parent.add_article_reference(article_number)
+                        
+                    self.model.add_article(article)
                 except ValueError:
                     pass
+        elif element_type == "Chapter":
+            chapter = DocumentModelChapter(name=element_name, pos_in_doc=pos_in_doc)
+            if parent is not None:
+                parent.add_child(chapter)
+            else:
+                self.model.add_chapter(chapter)
         elif element_type == "Title":
             title = DocumentModelTitle(element_name, pos_in_doc=pos_in_doc)
             if parent is not None:
@@ -235,9 +302,17 @@ class DocumentModelBuilder:
 
     def _validate_book(self, book_name_row: str) -> bool:
         book_name_row = book_name_row.strip()
-        # logger.info(f"Validating book: {book_name_row}")
 
-        if book_name_row[0] != "a" and book_name_row[0] != "I":
+        if len(book_name_row) == 0:
+            return False
+
+        words = book_name_row.split()
+        if len(words) == 0:
+            return False
+        
+        first_word = words[0]
+        # Books can be numbered with Roman numerals (like "I", "II", etc.) or with letters like "a", "b"
+        if first_word not in ROMAN_NUMERALS and not (len(first_word) == 1 and first_word.isalpha()):
             return False
 
         if len(book_name_row) > 200:
@@ -246,7 +321,14 @@ class DocumentModelBuilder:
         return True
 
     def _validate_title(self, title_name_row: str) -> bool:
-        if title_name_row.split()[0] not in ROMAN_NUMERALS:
+        title_name_row = title_name_row.strip()
+        
+        words = title_name_row.split()
+        if len(words) == 0:
+            return False
+            
+        first_word = words[0]
+        if first_word not in ROMAN_NUMERALS:
             return False
 
         return True
@@ -283,29 +365,29 @@ class DocumentModelBuilder:
 
     def _extract_article_content(self, doc_text: str, article_start: int, article_header: str) -> str:
         """Extract the full content of an article including its text body."""
-        # Find the end of this article by looking for next structural element
         article_start_in_text = article_start + len("Articolul")
         
-        # Use single search to find closest next element for better performance
-        article_end = len(doc_text)  # Default to end of text
-        search_patterns = ["Articolul", "Capitolul", "Titlul", "Cartea"]
+        article_end = len(doc_text)  
+        search_patterns = ["Articolul", "Capitolul", "Titlul", "Cartea", "Anexa"]
         
         for pattern in search_patterns:
             pos = doc_text.find(pattern, article_start_in_text)
             if pos != -1 and pos < article_end:
                 article_end = pos
         
-        # Extract complete article content (from "Articolul" to next element)
         article_content = doc_text[article_start:article_end].strip()
         
-        # Split into header line and body
         lines = article_content.split('\n', 1)
         if len(lines) > 1:
-            # Extract just the header part after "Articolul" 
             header_after_keyword = lines[0][len("Articolul"):].strip()
             article_body = lines[1].strip()
-            # Return in consistent format: "number title\nbody"
             return f"{header_after_keyword}\n{article_body}" if article_body else header_after_keyword
         else:
-            # Single line article - extract part after "Articolul"
             return lines[0][len("Articolul"):].strip()
+
+    def _add_changes(self):
+        pass
+        # articles = []
+        # if self.model.
+        # for change in self.document.changes:
+        #     if (change.target == )
