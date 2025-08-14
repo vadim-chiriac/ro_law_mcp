@@ -42,7 +42,7 @@ async def main():
     logger.info("Search service succesfully started.")
     builder = DocumentModelBuilder(civil_code)
     builder.build_document_model()
-    logger.info(builder.model.get_title(0))
-    # builder.model.log()
+    # logger.info(builder.model.get_title(0))
+    builder.model.log()
 
 asyncio.run(main())
