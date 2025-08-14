@@ -37,12 +37,12 @@ async def main():
     logger.info("Starting search service...")
     search_service = SearchService(soap_client=client)
     civil_code = await search_service.try_get_exact_match(
-        document_type="lege", number=95, year=2006, issuer="parlamentul"
+        document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
     logger.info("Search service succesfully started.")
     builder = DocumentModelBuilder(civil_code)
-    builder.build_document_model()
+    builder.parse_document()
     #logger.info(builder.model.get_title(16))
-    builder.model.log()
+    #builder.model.log()
 
 asyncio.run(main())
