@@ -180,13 +180,13 @@ class DocumentModel:
                 lines.append(f"  Articles: {chapter.article_numbers}")
         
         # Log all articles
-        if self.articles:
-            lines.append("")
-            lines.append("=== ALL ARTICLES ===")
-            for article in self.articles[:10]:  # Limit to first 10 for brevity
-                lines.append(f"Article {article.number} (pos: {article.pos_in_doc}): {article.text[:100]}...")
-            if len(self.articles) > 10:
-                lines.append(f"... and {len(self.articles) - 10} more articles")
+        # if self.articles:
+        #     lines.append("")
+        #     lines.append("=== ALL ARTICLES ===")
+        #     for article in self.articles[:10]:  # Limit to first 10 for brevity
+        #         lines.append(f"Article {article.number} (pos: {article.pos_in_doc}): {article.text[:100]}...")
+        #     if len(self.articles) > 10:
+        #         lines.append(f"... and {len(self.articles) - 10} more articles")
         
         return "\n".join(lines)
 
