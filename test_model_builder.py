@@ -37,7 +37,7 @@ async def main():
     logger.info("Starting search service...")
     search_service = SearchService(soap_client=client)
     civil_code = await search_service.try_get_exact_match(
-        document_type="ordin", number=106, year=2005, issuer="anpc"
+        document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
     logger.info("Search service succesfully started.")
     builder = ModelBuilder(civil_code)
