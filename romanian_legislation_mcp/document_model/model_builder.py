@@ -30,8 +30,8 @@ class ModelBuilder:
     def _build_hierarchy(self, element: DocumentPart):
         self._find_element_structure(element)
         for child in element.children:
-            logger.info(f"Child {child.type_name}: {child.title}")
-            #if (child.type_name != DocumentPartType.TITLE):
+            if (child.type_name != DocumentPartType.CHAPTER):
+                logger.info(f"Child {child.type_name}: {child.title} for parent {element.title}")
             self._build_hierarchy(child)
 
     def _find_element_structure(self, parent: DocumentPart) -> list[DocumentPart]:
