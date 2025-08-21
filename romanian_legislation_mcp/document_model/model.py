@@ -9,6 +9,7 @@ class DocumentPartType(enum.Enum):
     TITLE = 2
     CHAPTER = 3
     SECTION = 4
+    ARTICLE = 5
 
     def to_keyword(self) -> str:
         if self == DocumentPartType.BOOK:
@@ -19,6 +20,10 @@ class DocumentPartType(enum.Enum):
             return "Capitolul"
         elif self == DocumentPartType.SECTION:
             return "Secţiunea"
+        elif self == DocumentPartType.ARTICLE:
+            return "Articolul"
+        else:
+            return None
 
     def get_possible_child_types(self) -> list["DocumentPartType"]:
         """Returns all possible child element types in decreasing hierarchical order.
@@ -32,18 +37,26 @@ class DocumentPartType(enum.Enum):
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,
                 DocumentPartType.SECTION,
+                DocumentPartType.ARTICLE,
             ]
         elif self == DocumentPartType.BOOK:
             return [
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,
                 DocumentPartType.SECTION,
+                DocumentPartType.ARTICLE,
             ]
         elif self == DocumentPartType.TITLE:
-            return [DocumentPartType.CHAPTER, DocumentPartType.SECTION]
+            return [
+                DocumentPartType.CHAPTER,
+                DocumentPartType.SECTION,
+                DocumentPartType.ARTICLE,
+            ]
         elif self == DocumentPartType.CHAPTER:
-            return [DocumentPartType.SECTION]
+            return [DocumentPartType.SECTION, DocumentPartType.ARTICLE]
         elif self == DocumentPartType.SECTION:
+            return [DocumentPartType.ARTICLE]
+        elif self == DocumentPartType.ARTICLE:
             return []
         else:
             return []
@@ -74,7 +87,15 @@ class DocumentPartType(enum.Enum):
                 DocumentPartType.BOOK,
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,
-                DocumentPartType.SECTION
+                DocumentPartType.SECTION,
+            ]
+        elif self == DocumentPartType.ARTICLE:
+            return [
+                DocumentPartType.BOOK,
+                DocumentPartType.TITLE,
+                DocumentPartType.CHAPTER,
+                DocumentPartType.SECTION,
+                DocumentPartType.ARTICLE
             ]
         else:
             return []
@@ -121,8 +142,3 @@ class DocumentPart:
 
     def has_articles(self):
         return len(self.article_numbers) > 0
-
-
-class DocumentModel:
-    def __init__(self):
-        self.children: list[DocumentPart] = []

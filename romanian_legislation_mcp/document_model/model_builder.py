@@ -29,7 +29,8 @@ class ModelBuilder:
         self._find_element_structure(element)
         for child in element.children:
             logger.info(f"{child.type_name}: {child.title}")
-            self._build_hierarchy(child)
+            if child.type_name != DocumentPartType.ARTICLE: 
+                self._build_hierarchy(child)
 
     def _find_element_structure(self, parent: DocumentPart) -> list[DocumentPart]:
         search_start = 0
@@ -130,10 +131,8 @@ class ModelBuilder:
         else:
             full_title_end = title_start + part_title_end
 
-        # Not super consistent, for book/title/chapter, element_name_row is just the name,
-        # for article it also includes (or only) content
         header = text[title_start:full_title_end]
-        # element_pos_in_doc = pos_in_doc + title_start  # Position in full doc
+        
         return {
             "header": header,
             "element_start": element_start,
