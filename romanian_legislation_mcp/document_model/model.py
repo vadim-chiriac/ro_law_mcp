@@ -95,7 +95,7 @@ class DocumentPartType(enum.Enum):
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,
                 DocumentPartType.SECTION,
-                DocumentPartType.ARTICLE
+                DocumentPartType.ARTICLE,
             ]
         else:
             return []
@@ -103,22 +103,25 @@ class DocumentPartType(enum.Enum):
 
 class DocumentPart:
     type_name: DocumentPartType
-    children: list["DocumentPart"]
+    number: str
     title: str
-    article_numbers: list[int]
     start_pos: int
     end_pos: int
+    article_numbers: list[int]
+    children: list["DocumentPart"]
 
     def __init__(
         self,
-        name: DocumentPartType,
-        title: str,
-        parent: Optional["DocumentPart"],
+        type_name: DocumentPartType,
+        number: str = "0",
         start_pos=-1,
         end_pos=-1,
+        title: str = "",
+        parent: Optional["DocumentPart"] = None,
     ):
-        self.type_name = name
+        self.type_name = type_name
         self.title = title
+        self.number = number
         self.parent = parent
         self.start_pos = start_pos
         self.end_pos = end_pos
@@ -139,6 +142,9 @@ class DocumentPart:
 
     def set_parent(self, parent: "DocumentPart"):
         self.parent = parent
+        
+    def set_number(self, number: str):
+        self.number = number
 
     def has_articles(self):
         return len(self.article_numbers) > 0

@@ -4,7 +4,7 @@ from romanian_legislation_mcp.document_model.model import (
     DocumentPart,
     DocumentPartType,
 )
-from romanian_legislation_mcp.document_model.validator import validate_header
+from romanian_legislation_mcp.document_model.validator import validate_header, extract_number_from_header
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,12 +71,16 @@ class ModelBuilder:
             e_end = self._find_element_end(text[next_search_start:], e_type)
             if element is None or e_header["element_start"] + offset < element.start_pos:
                 element = DocumentPart(
-                    e_type,
-                    e_header["header"],
-                    None,
-                    e_header["element_start"] + offset,
-                    e_end + offset + next_search_start,
+                    type_name=e_type,
+                    title=e_header["header"],
+                    start_pos=e_header["element_start"] + offset,
+                    end_pos=e_end + offset + next_search_start,
                 )
+                
+        if element is not None:
+            number = extract_number_from_header(e_header, e_type)
+            element.set_number(number)
+            
         return element
 
     def _find_element_end(self, text: str, element_type: DocumentPartType) -> int:

@@ -116,5 +116,6 @@ def _validate_article(article_name_row: str) -> bool:
 
     return True
 
-
+def extract_number_from_header(header: str, element_type: DocumentPartType):
+    return "0"
 # def _extract_article_content(article_row: str) -> str:
