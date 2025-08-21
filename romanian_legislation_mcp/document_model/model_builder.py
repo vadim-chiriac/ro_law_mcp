@@ -4,7 +4,10 @@ from romanian_legislation_mcp.document_model.model import (
     DocumentPart,
     DocumentPartType,
 )
-from romanian_legislation_mcp.document_model.validator import validate_header, extract_number_from_header
+from romanian_legislation_mcp.document_model.validator import (
+    validate_header,
+    extract_number_from_header,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,20 +20,55 @@ class ModelBuilder:
 
     def parse_document(self):
         self._build_document_structure()
+        self.log_model_contents(5)
+
+    def log_model_contents(self, max_depth: int = None):
+        """Log the hierarchical structure of the parsed document model."""
+        if self.top is None:
+            logger.warning("No document model to log. Call parse_document() first.")
+            return
+        
+        logger.info("=== Document Model Contents ===")
+        logger.info(f"Document: {self.document.title}")
+        logger.info(f"Total text length: {len(self.document.text)} characters")
+        self._log_element(self.top, depth=0, max_depth=max_depth)
+        logger.info("=== End Document Model ===")
+
+    def _log_element(self, element: DocumentPart, depth: int = 0, max_depth: int = None):
+        """Recursively log a document element and its children."""
+        if max_depth is not None and depth > max_depth:
+            return
+        
+        indent = "  " * depth
+        # text_snippet = element.get_text(self.document.text)[:100].replace('\n', ' ')
+        # if len(text_snippet) == 100:
+        #     text_snippet += "..."
+        
+        logger.info(f"{indent}{element.type_name.name}: {element.title}")
+        logger.info(f"{indent}  Position: {element.start_pos}-{element.end_pos}")
+        logger.info(f"{indent}  Number: {element.number}")
+        #logger.info(f"{indent}  Text: {text_snippet}")
+        
+        
+        for child in element.children:
+            self._log_element(child, depth + 1, max_depth)
 
     def _build_document_structure(self):
         self.top = DocumentPart(
-            DocumentPartType.TOP, self.document.title, None, 0, len(self.document.text)
+            type_name=DocumentPartType.TOP,
+            title=self.document.title,
+            start_pos=0,
+            end_pos=len(self.document.text),
         )
         self._build_hierarchy(self.top)
-        logger.info("Document built.")
+        
 
     def _build_hierarchy(self, element: DocumentPart):
         self._find_element_structure(element)
         for child in element.children:
-            logger.info(f"{child.type_name}: {child.title}")
-            if child.type_name != DocumentPartType.ARTICLE: 
+            if child.type_name != DocumentPartType.ARTICLE:
                 self._build_hierarchy(child)
+
 
     def _find_element_structure(self, parent: DocumentPart) -> list[DocumentPart]:
         search_start = 0
@@ -49,9 +87,6 @@ class ModelBuilder:
                 break
 
             parent.add_child(element)
-            # logger.info(
-            #     f"Found element: {element.type_name} - {element.title}. {element.start_pos}:{element.end_pos}"
-            # )
             valid_types = element.type_name.get_possible_equal_or_greater_types()
             search_start = element.end_pos - parent.start_pos
 
@@ -69,18 +104,25 @@ class ModelBuilder:
                 continue
             next_search_start = e_header["title_end"]
             e_end = self._find_element_end(text[next_search_start:], e_type)
-            if element is None or e_header["element_start"] + offset < element.start_pos:
+            if (
+                element is None
+                or e_header["element_start"] + offset < element.start_pos
+            ):
+                if e_type == DocumentPartType.ARTICLE:
+                    title = e_header["header"].split()[0]
+                else:
+                    title = e_header["header"]
                 element = DocumentPart(
                     type_name=e_type,
-                    title=e_header["header"],
+                    title=title,
                     start_pos=e_header["element_start"] + offset,
                     end_pos=e_end + offset + next_search_start,
                 )
-                
+
         if element is not None:
             number = extract_number_from_header(e_header, e_type)
             element.set_number(number)
-            
+
         return element
 
     def _find_element_end(self, text: str, element_type: DocumentPartType) -> int:
@@ -106,10 +148,10 @@ class ModelBuilder:
             # logger.info(f"Invalid header found and skipped: '{header['header'][:50]}'")
             skip_pos = header["element_start"] + len(keyword)
             header = self._find_next_valid_header(text[skip_pos:], element_type)
-            
+
             if header is not None:
                 start = header["element_start"] + skip_pos
-                t_start = header["title_start"] + skip_pos 
+                t_start = header["title_start"] + skip_pos
                 t_end = header["title_end"] + skip_pos
 
                 header["element_start"] = start
@@ -136,7 +178,7 @@ class ModelBuilder:
             full_title_end = title_start + part_title_end
 
         header = text[title_start:full_title_end]
-        
+
         return {
             "header": header,
             "element_start": element_start,

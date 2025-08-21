@@ -116,6 +116,153 @@ def _validate_article(article_name_row: str) -> bool:
 
     return True
 
-def extract_number_from_header(header: str, element_type: DocumentPartType):
+def extract_number_from_header(header: str, element_type: DocumentPartType) -> str:
+    """
+    Extract numeric/identifier from header based on element type.
+    
+    Args:
+        header: The header string or dict containing 'header' key
+        element_type: The type of document element
+        
+    Returns:
+        String representation of the extracted number/identifier
+    """
+    # Handle both string and dict inputs for backward compatibility
+    if isinstance(header, dict):
+        header_str = header.get("header", "")
+    else:
+        header_str = header
+        
+    if element_type == DocumentPartType.BOOK:
+        return _extract_book_number(header_str)
+    elif element_type == DocumentPartType.TITLE:
+        return _extract_title_number(header_str)
+    elif element_type == DocumentPartType.CHAPTER:
+        return _extract_chapter_number(header_str)
+    elif element_type == DocumentPartType.SECTION:
+        return _extract_section_number(header_str)
+    elif element_type == DocumentPartType.ARTICLE:
+        return _extract_article_number(header_str)
+    else:
+        return "0"
+
+
+def _extract_book_number(header: str) -> str:
+    """Extract number from book header (Roman numerals or single letters)."""
+    header = header.strip()
+    if not header:
+        return "0"
+        
+    words = header.split()
+    if not words:
+        return "0"
+        
+    first_word = words[0]
+    
+    if first_word in ROMAN_NUMERALS:
+        return str(ROMAN_NUMERALS.index(first_word) + 1)
+    
+    if len(first_word) == 1 and first_word.isalpha():
+        return str(ord(first_word.upper()) - ord('A') + 1)
+    
     return "0"
+
+
+def _extract_title_number(header: str) -> str:
+    """Extract number from title header (Roman numerals or 'PRELIMINAR')."""
+    header = header.strip()
+    if not header:
+        return "0"
+        
+    words = header.split()
+    if not words:
+        return "0"
+        
+    first_word = words[0]
+    
+    if first_word == "PRELIMINAR":
+        return "PRELIMINAR"  
+    
+    if first_word in ROMAN_NUMERALS:
+        return str(ROMAN_NUMERALS.index(first_word) + 1)
+    
+    return "0"
+
+
+def _extract_chapter_number(header: str) -> str:
+    """Extract number from chapter header (Roman numerals)."""
+    header = header.strip()
+    if not header:
+        return "0"
+        
+    words = header.split()
+    if not words:
+        return "0"
+        
+    first_word = words[0]
+    
+    # Check if it's a Roman numeral
+    if first_word in ROMAN_NUMERALS:
+        return str(ROMAN_NUMERALS.index(first_word) + 1)
+    
+    return "0"
+
+
+def _extract_section_number(header: str) -> str:
+    """Extract number from section header (numbers with optional '-a' suffix)."""
+    header = header.strip()
+    if not header:
+        return "0"
+        
+    words = header.split()
+    if not words:
+        return "0"
+    
+    first_word = words[0]
+    
+    # Handle special case where first word is "a" (meaning it continues from previous)
+    if first_word == "a" and len(words) > 1:
+        second_word = words[1]
+        if second_word.endswith("-a"):
+            number_part = second_word[:-2]
+        else:
+            return "0"
+    else:
+        # Direct number case
+        number_part = first_word
+    
+    # Try to extract the numeric part
+    try:
+        num = int(number_part)
+        if num > 0:
+            return str(num)
+    except ValueError:
+        pass
+    
+    return "0"
+
+
+def _extract_article_number(header: str) -> str:
+    """Extract number from article header (integer numbers)."""
+    header = header.strip()
+    if not header:
+        return "0"
+        
+    words = header.split()
+    if not words:
+        return "0"
+        
+    first_word = words[0]
+    
+    # Try to convert the first word to an integer
+    try:
+        num = int(first_word)
+        if num > 0:
+            return str(num)
+    except ValueError:
+        pass
+    
+    return "0"
+
+
 # def _extract_article_content(article_row: str) -> str:
