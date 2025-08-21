@@ -1,7 +1,6 @@
 from typing import Optional
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
 from romanian_legislation_mcp.document_model.model import (
-    DocumentModel,
     DocumentPart,
     DocumentPartType,
 )

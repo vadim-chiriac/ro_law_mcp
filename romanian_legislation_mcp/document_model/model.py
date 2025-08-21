@@ -8,6 +8,7 @@ class DocumentPartType(enum.Enum):
     BOOK = 1
     TITLE = 2
     CHAPTER = 3
+    SECTION = 4
 
     def to_keyword(self) -> str:
         if self == DocumentPartType.BOOK:
@@ -16,6 +17,8 @@ class DocumentPartType(enum.Enum):
             return "Titlul"
         elif self == DocumentPartType.CHAPTER:
             return "Capitolul"
+        elif self == DocumentPartType.SECTION:
+            return "Secţiunea"
 
     def get_possible_child_types(self) -> list["DocumentPartType"]:
         """Returns all possible child element types in decreasing hierarchical order.
@@ -28,12 +31,19 @@ class DocumentPartType(enum.Enum):
                 DocumentPartType.BOOK,
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,
+                DocumentPartType.SECTION,
             ]
         elif self == DocumentPartType.BOOK:
-            return [DocumentPartType.TITLE, DocumentPartType.CHAPTER]
+            return [
+                DocumentPartType.TITLE,
+                DocumentPartType.CHAPTER,
+                DocumentPartType.SECTION,
+            ]
         elif self == DocumentPartType.TITLE:
-            return [DocumentPartType.CHAPTER]
+            return [DocumentPartType.CHAPTER, DocumentPartType.SECTION]
         elif self == DocumentPartType.CHAPTER:
+            return [DocumentPartType.SECTION]
+        elif self == DocumentPartType.SECTION:
             return []
         else:
             return []
@@ -58,6 +68,13 @@ class DocumentPartType(enum.Enum):
                 DocumentPartType.BOOK,
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,
+            ]
+        elif self == DocumentPartType.SECTION:
+            return [
+                DocumentPartType.BOOK,
+                DocumentPartType.TITLE,
+                DocumentPartType.CHAPTER,
+                DocumentPartType.SECTION
             ]
         else:
             return []
@@ -86,19 +103,19 @@ class DocumentPart:
         self.end_pos = end_pos
         self.children = []
         self.article_numbers = []
-        
+
     def add_child(self, child: "DocumentPart"):
         child.set_parent(self)
         self.children.append(child)
-        
+
     def get_children_of_type(self, child_type: DocumentPartType):
         results = []
         for child in self.children:
             if child.type_name == child_type:
                 results.append(child)
-                
+
         return results
-    
+
     def set_parent(self, parent: "DocumentPart"):
         self.parent = parent
 

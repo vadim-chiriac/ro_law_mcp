@@ -3,12 +3,15 @@ from romanian_legislation_mcp.document_model.mappings import ROMAN_NUMERALS
 
 
 def validate_header(header: str, element_type: DocumentPartType) -> bool:
+    header_str = header["header"]
     if element_type == DocumentPartType.BOOK:
-        return _validate_book_header(header["header"])
+        return _validate_book_header(header_str)
     if element_type == DocumentPartType.TITLE:
-        return _validate_title_header(header["header"])
+        return _validate_title_header(header_str)
     if element_type == DocumentPartType.CHAPTER:
-        return _validate_chapter_header(header["header"])
+        return _validate_chapter_header(header_str)
+    if element_type == DocumentPartType.SECTION:
+        return _validate_section_header(header_str)
 
     return False
 
@@ -60,6 +63,36 @@ def _validate_chapter_header(header: str) -> bool:
     if len(header) > 200:
         return False
 
+    return True
+
+def _validate_section_header(header: str) -> bool:
+    header = header.strip()
+        
+    words = header.split()
+    if len(words) == 0:
+        return False
+    
+    if words[0] != "a" and words[0] != "1":
+        return False
+    
+    if words[0] != "1":
+        second_word = words[1]
+        if not second_word.endswith("-a"):
+            return False
+        number_part = second_word[:-2]
+    else:
+        number_part = words[0]
+    
+    try:
+        num = int(number_part)
+        if num <= 0:
+            return False
+    except ValueError:
+        return False
+    
+    if len(header) > 300:
+        return False
+    
     return True
 
 def _validate_article(article_name_row: str) -> bool:
