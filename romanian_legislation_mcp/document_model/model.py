@@ -45,18 +45,16 @@ class DocumentPartType(enum.Enum):
         The hierarchy from highest to lowest is: TOP -> BOOK -> TITLE -> CHAPTER
         """
         if self == DocumentPartType.TOP:
-            return [DocumentPartType.TOP]
+            return []
         elif self == DocumentPartType.BOOK:
-            return [DocumentPartType.TOP, DocumentPartType.BOOK]
+            return [DocumentPartType.BOOK]
         elif self == DocumentPartType.TITLE:
             return [
-                DocumentPartType.TOP,
                 DocumentPartType.BOOK,
                 DocumentPartType.TITLE,
             ]
         elif self == DocumentPartType.CHAPTER:
             return [
-                DocumentPartType.TOP,
                 DocumentPartType.BOOK,
                 DocumentPartType.TITLE,
                 DocumentPartType.CHAPTER,

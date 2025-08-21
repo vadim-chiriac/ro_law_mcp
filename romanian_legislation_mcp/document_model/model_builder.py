@@ -24,29 +24,24 @@ class ModelBuilder:
             DocumentPartType.TOP, self.document.title, None, 0, len(self.document.text)
         )
         self._build_hierarchy(self.top)
-        logger.info("Document hierarchy built.")
-        # self._build_hierarchy(self.top.children[-1])
-        
+        logger.info("Document built.")
+
     def _build_hierarchy(self, element: DocumentPart):
         self._find_element_structure(element)
         for child in element.children:
-            if (child.type_name != DocumentPartType.CHAPTER):
-                logger.info(f"Child {child.type_name}: {child.title} for parent {element.title}")
+            logger.info(f"{child.type_name}: {child.title}")
             self._build_hierarchy(child)
 
     def _find_element_structure(self, parent: DocumentPart) -> list[DocumentPart]:
         search_start = 0
         text = self.document.text[parent.start_pos : parent.end_pos]
-        max_parent_type = parent.type_name
+
+        valid_types = parent.type_name.get_possible_child_types()
 
         while search_start < len(text):
-            # logger.info(f"Searching from {search_start} (absolute: {parent.start_pos + search_start}).")
-            # logger.info(f"Text starts with: {text[search_start:][:50]}")
-            # logger.info(f"Parent range: {parent.start_pos}:{parent.end_pos}, remaining text length: {len(text) - search_start}")
             element = self._find_element(
                 text[search_start:],
-                max_parent_type,
-                parent,
+                valid_types,
                 parent.start_pos + search_start,
             )
 
@@ -57,92 +52,65 @@ class ModelBuilder:
             # logger.info(
             #     f"Found element: {element.type_name} - {element.title}. {element.start_pos}:{element.end_pos}"
             # )
-
-            max_parent_type = element.type_name.get_possible_equal_or_greater_types()[0]
+            valid_types = element.type_name.get_possible_equal_or_greater_types()
             search_start = element.end_pos - parent.start_pos
 
     def _find_element(
         self,
         text: str,
-        parent_type: DocumentPartType,
-        parent: DocumentPart,
+        valid_types: list[DocumentPart],
         offset: int,
     ) -> Optional[DocumentPart]:
-        if parent_type == DocumentPartType.CHAPTER:
-            opening_types = [DocumentPartType.CHAPTER]
-        else:
-            opening_types = parent_type.get_possible_child_types()
-            
-        closing_types = []
-        opening_index = -1
-        i = 0
         element = None
-        while len(opening_types) > 0:
-            o_type = opening_types.pop()
-            o_header = self._find_next_valid_header(text, o_type)
-            if not o_header:
+        while len(valid_types) > 0:
+            e_type = valid_types.pop(0)
+            e_header = self._find_next_valid_header(text, e_type)
+            if not e_header:
                 continue
-            if opening_index != -1 and o_header["element_start"] > opening_index:
-                continue
-            # if (o_type == DocumentPartType.CHAPTER):
-            #     logger.info(f"Found opening: {o_header}")
-            closing_types = o_header[
-                "element_type"
-            ].get_possible_equal_or_greater_types()
-            i = o_header["title_end"]
-            c_header = None
-            while len(closing_types) > 0:
-                c_type = closing_types.pop(0)
-                #if parent_type == DocumentPartType.CHAPTER:
-                    #logger.info(f"Looking for closing {c_type}")
-                c_header = self._find_next_valid_header(text[i:], c_type)
-                if c_header:
-                    break
-
-            element_end = 0
-            if c_header is None:
-                # if (o_type == DocumentPartType.BOOK):
-                #     logger.info(f"Found none closing for type {o_type} with parent type {parent.type_name} and parent: {parent.children}")
-                if len(parent.get_children_of_type(o_type)) == 0:
-                    continue
-                else:
-                    element_end = len(self.document.text)
-            else:
-                element_end = c_header["element_start"] + i + offset
-
-            element = DocumentPart(
-                o_type,
-                o_header["header"],
-                None,
-                o_header["element_start"] + offset,
-                element_end,
-            )
-
-            opening_index = element.start_pos
-
+            next_search_start = e_header["title_end"]
+            e_end = self._find_element_end(text[next_search_start:], e_type)
+            if element is None or e_header["element_start"] + offset < element.start_pos:
+                element = DocumentPart(
+                    e_type,
+                    e_header["header"],
+                    None,
+                    e_header["element_start"] + offset,
+                    e_end + offset + next_search_start,
+                )
         return element
+
+    def _find_element_end(self, text: str, element_type: DocumentPartType) -> int:
+        valid_siblings = element_type.get_possible_equal_or_greater_types()
+        while len(valid_siblings) > 0:
+            next_e_type = valid_siblings.pop(0)
+            next_e_header = self._find_next_valid_header(text, next_e_type)
+            if next_e_header is not None:
+                return next_e_header["element_start"]
+            elif len(valid_siblings) == 0:
+                return len(text)
 
     def _find_next_valid_header(
         self, text: str, element_type: DocumentPartType
     ) -> Optional[dict]:
         keyword = element_type.to_keyword()
         header = self._find_element_header(text, element_type)
+        skip_pos = 0
         if header is None:
             return None
 
         if not validate_header(header, element_type):
             # logger.info(f"Invalid header found and skipped: '{header['header'][:50]}'")
             skip_pos = header["element_start"] + len(keyword)
-            h = self._find_next_valid_header(text[skip_pos:], element_type)
-            if h is not None:
-                start = h["element_start"] + skip_pos
-                t_start = h["title_start"] + skip_pos
-                t_end = h["title_end"] + skip_pos
+            header = self._find_next_valid_header(text[skip_pos:], element_type)
+            
+            if header is not None:
+                start = header["element_start"] + skip_pos
+                t_start = header["title_start"] + skip_pos 
+                t_end = header["title_end"] + skip_pos
 
-                h["element_start"] = start
-                h["title_start"] = t_start
-                h["title_end"] = t_end
-            return h
+                header["element_start"] = start
+                header["title_start"] = t_start
+                header["title_end"] = t_end
 
         return header
 
@@ -151,10 +119,10 @@ class ModelBuilder:
     ) -> Optional[dict]:
         keyword = element_type.to_keyword()
         if keyword is None:
-            return
+            return None
         element_start = text.find(keyword)
         if element_start == -1:
-            return
+            return None
 
         title_start = element_start + len(keyword)
         part_title_end = text[title_start:].find("\n")
