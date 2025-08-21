@@ -14,49 +14,65 @@ logger = logging.getLogger(__name__)
 class ModelBuilder:
     def __init__(self, document: LegislationDocument):
         self.document = document
-        self.model = DocumentModel()
-        self.level = 0
-        self.current_element = DocumentPart
+        self.top: DocumentPart = None
 
     def parse_document(self):
         self._build_document_structure()
 
     def _build_document_structure(self):
-        top = DocumentPart(
+        self.top = DocumentPart(
             DocumentPartType.TOP, self.document.title, None, 0, len(self.document.text)
         )
-        self._find_element_structure(top)
+        self._build_hierarchy(self.top)
+        logger.info("Document hierarchy built.")
+        # self._build_hierarchy(self.top.children[-1])
+        
+    def _build_hierarchy(self, element: DocumentPart):
+        self._find_element_structure(element)
+        for child in element.children:
+            logger.info(f"Child {child.type_name}: {child.title}")
+            #if (child.type_name != DocumentPartType.TITLE):
+            self._build_hierarchy(child)
 
     def _find_element_structure(self, parent: DocumentPart) -> list[DocumentPart]:
-        element_list: list[DocumentPart] = []
         search_start = 0
         text = self.document.text[parent.start_pos : parent.end_pos]
         max_parent_type = parent.type_name
-        
+
         while search_start < len(text):
             # logger.info(f"Searching from {search_start} (absolute: {parent.start_pos + search_start}).")
             # logger.info(f"Text starts with: {text[search_start:][:50]}")
             # logger.info(f"Parent range: {parent.start_pos}:{parent.end_pos}, remaining text length: {len(text) - search_start}")
             element = self._find_element(
-                text[search_start:], max_parent_type, parent, parent.start_pos + search_start
+                text[search_start:],
+                max_parent_type,
+                parent,
+                parent.start_pos + search_start,
             )
-            
+
             if element is None:
-                continue
+                break
 
             parent.add_child(element)
-            logger.info(
-                f"Found element: {element.type_name} - {element.title}. {element.start_pos}:{element.end_pos}"
-            )
+            # logger.info(
+            #     f"Found element: {element.type_name} - {element.title}. {element.start_pos}:{element.end_pos}"
+            # )
 
             max_parent_type = element.type_name.get_possible_equal_or_greater_types()[0]
             search_start = element.end_pos - parent.start_pos
 
-
     def _find_element(
-        self, text: str, parent_type: DocumentPartType, parent: DocumentPart, offset: int
+        self,
+        text: str,
+        parent_type: DocumentPartType,
+        parent: DocumentPart,
+        offset: int,
     ) -> Optional[DocumentPart]:
-        opening_types = parent_type.get_possible_child_types()
+        if parent_type == DocumentPartType.CHAPTER:
+            opening_types = [DocumentPartType.CHAPTER]
+        else:
+            opening_types = parent_type.get_possible_child_types()
+            
         closing_types = []
         opening_index = -1
         i = 0
@@ -68,7 +84,7 @@ class ModelBuilder:
                 continue
             if opening_index != -1 and o_header["element_start"] > opening_index:
                 continue
-            # if (o_type == DocumentPartType.BOOK):
+            # if (o_type == DocumentPartType.CHAPTER):
             #     logger.info(f"Found opening: {o_header}")
             closing_types = o_header[
                 "element_type"
@@ -77,6 +93,8 @@ class ModelBuilder:
             c_header = None
             while len(closing_types) > 0:
                 c_type = closing_types.pop(0)
+                #if parent_type == DocumentPartType.CHAPTER:
+                    #logger.info(f"Looking for closing {c_type}")
                 c_header = self._find_next_valid_header(text[i:], c_type)
                 if c_header:
                     break
@@ -88,17 +106,16 @@ class ModelBuilder:
                 if len(parent.get_children_of_type(o_type)) == 0:
                     continue
                 else:
-                    logger.info(f"Possible last element {o_type}")
                     element_end = len(self.document.text)
             else:
                 element_end = c_header["element_start"] + i + offset
-            
+
             element = DocumentPart(
                 o_type,
                 o_header["header"],
                 None,
                 o_header["element_start"] + offset,
-                element_end
+                element_end,
             )
 
             opening_index = element.start_pos

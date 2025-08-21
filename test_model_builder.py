@@ -5,8 +5,8 @@ import os
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
-from romanian_legislation_mcp.document_model.document_model_builder import (
-    DocumentModelBuilder,
+from romanian_legislation_mcp.document_model.model_builder import (
+    ModelBuilder,
 )
 from romanian_legislation_mcp.document_search.search_service import SearchService
 
@@ -40,7 +40,7 @@ async def main():
         document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
     logger.info("Search service succesfully started.")
-    builder = DocumentModelBuilder(civil_code)
+    builder = ModelBuilder(civil_code)
     builder.parse_document()
     #logger.info(builder.model.get_title(16))
     #builder.model.log()
