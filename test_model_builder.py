@@ -5,10 +5,11 @@ import os
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
-from romanian_legislation_mcp.document_model.model_builder import (
-    ModelBuilder,
-)
+
 from romanian_legislation_mcp.api_consumers.document_finder import DocumentFinder
+from romanian_legislation_mcp.structured_document.service import (
+    StructuredDocumentService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +38,28 @@ async def main():
     logger.info("Starting search service...")
     # search_service = SearchService(soap_client=client)
     document_finder = DocumentFinder(legislation_client=client)
-    civil_code = await document_finder.get_document(
+    service = StructuredDocumentService(document_finder)
+    document = await service.get_document(
         document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
-    logger.info("Search service succesfully started.")
-    builder = ModelBuilder(civil_code)
-    controller = builder.create_controller()
-    logger.info(controller.get_article("44"))
-    search_res = controller.search_in_text("locatiune") 
-    logger.info(search_res)
+    logger.info(document.get_json_structure())
+    # civil_code = await document_finder.get_document(
+    #     document_type="lege", number=287, year=2009, issuer="parlamentul"
+    # )
+    # logger.info("Search service succesfully started.")
+    # builder = ModelBuilder(civil_code)
+    # controller = builder.create_controller()
+    # logger.info(document.get_article("44"))
+    # id = document.get_random_id()
+    # element = document.get_element_by_id(id)
+    #logger.info(element)
+    # res = document.search_in_text("ilicite", 104583, 116448)
+
+    # search_res = document.search_in_text("locatiune")
+    # logger.info(res)
     # logger.info(model.get_document_structure())
-    #logger.info(builder.model.get_title(16))
-    #builder.model.log()
+    # logger.info(builder.model.get_title(16))
+    # builder.model.log()
+
 
 asyncio.run(main())

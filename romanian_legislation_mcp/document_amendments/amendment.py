@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_model.model import DocumentPartType
+from romanian_legislation_mcp.structured_document.element import DocumentElementType
 
 
 @dataclass
@@ -10,7 +10,7 @@ class Amendment:
     amendment_type: str
     source_str: str
     source_url: str
-    target_element_type: DocumentPartType
+    target_element_type: DocumentElementType
     target_element_no: Optional[str] = None
 
 

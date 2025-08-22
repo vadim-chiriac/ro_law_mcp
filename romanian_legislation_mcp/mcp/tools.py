@@ -3,8 +3,8 @@ import json
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
-from romanian_legislation_mcp.document_search.search_service import SearchService
-from romanian_legislation_mcp.document_search.legal_document_mappings import (
+from romanian_legislation_mcp.api_consumers.search_service import SearchService
+from romanian_legislation_mcp.api_consumers.mappings.legal_document_mappings import (
     DOCUMENT_MAPPINGS,
     COMMON_DOCUMENTS,
     ISSUER_MAPPINGS_FOR_TOOLS,

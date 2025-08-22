@@ -2,7 +2,7 @@ from romanian_legislation_mcp.document_amendments.amendment import (
     Amendment,
     AmendmentData,
 )
-from romanian_legislation_mcp.document_model.model import DocumentPartType
+from romanian_legislation_mcp.structured_document.element import DocumentElementType
 
 import requests
 import logging
@@ -71,7 +71,7 @@ class AmendmentParser:
                 amendments = self._parse_amendments_from_html(decoded_html)
                 is_repealed = any(
                     amendment.amendment_type.lower() == "repealed"
-                    and amendment.target_element_type == DocumentPartType.TOP
+                    and amendment.target_element_type == DocumentElementType.TOP
                     for amendment in amendments
                 )
                 document_amendments = AmendmentData(
@@ -109,15 +109,15 @@ class AmendmentParser:
                 if target_str in ["SECTIUNE ACT", "TIP OPERATIUNE"]:
                     continue
 
-                target_type: DocumentPartType = None
+                target_type: DocumentElementType = None
                 target_no: str = None
                 if target_str == "Actul":
-                    target_type = DocumentPartType.TOP
+                    target_type = DocumentElementType.TOP
 
                 if self._is_article(target_str):
                     article_no = self._try_get_article_number(target_str)
                     if article_no is not None:
-                        target_type = DocumentPartType.ARTICLE
+                        target_type = DocumentElementType.ARTICLE
                         target_no = article_no
 
                 amendment_type_raw = cells[1].get_text(strip=True)

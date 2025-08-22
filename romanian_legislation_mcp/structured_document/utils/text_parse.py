@@ -1,6 +1,9 @@
 from typing import Optional
-from romanian_legislation_mcp.document_model.model import DocumentPart, DocumentPartType
-from romanian_legislation_mcp.document_model.utils.validator import (
+from romanian_legislation_mcp.structured_document.element import (
+    DocumentElement,
+    DocumentElementType,
+)
+from romanian_legislation_mcp.structured_document.utils.validator import (
     validate_header,
     extract_number_from_header,
 )
@@ -8,9 +11,9 @@ from romanian_legislation_mcp.document_model.utils.validator import (
 
 def find_element(
     text: str,
-    valid_types: list[DocumentPart],
+    valid_types: list[DocumentElement],
     offset: int,
-) -> Optional[DocumentPart]:
+) -> Optional[DocumentElement]:
     element = None
     while len(valid_types) > 0:
         e_type = valid_types.pop(0)
@@ -22,12 +25,12 @@ def find_element(
         e_end = _find_element_end(text[next_search_start:], e_type)
 
         if element is None or e_header["element_start"] + offset < element.start_pos:
-            if e_type == DocumentPartType.ARTICLE:
+            if e_type == DocumentElementType.ARTICLE:
                 title = e_header["header"].split()[0]
             else:
                 title = e_header["header"]
 
-            element = DocumentPart(
+            element = DocumentElement(
                 type_name=e_type,
                 title=title,
                 start_pos=e_header["element_start"] + offset,
@@ -41,7 +44,7 @@ def find_element(
     return element
 
 
-def _find_element_end(text: str, element_type: DocumentPartType) -> int:
+def _find_element_end(text: str, element_type: DocumentElementType) -> int:
     valid_siblings = element_type.get_possible_equal_or_greater_types()
     while len(valid_siblings) > 0:
         next_e_type = valid_siblings.pop(0)
@@ -53,7 +56,7 @@ def _find_element_end(text: str, element_type: DocumentPartType) -> int:
 
 
 def _find_next_valid_header(
-    text: str, element_type: DocumentPartType
+    text: str, element_type: DocumentElementType
 ) -> Optional[dict]:
     keyword = element_type.to_keyword()
     header = _find_element_header(text, element_type)
@@ -78,7 +81,9 @@ def _find_next_valid_header(
     return header
 
 
-def _find_element_header(text: str, element_type: DocumentPartType) -> Optional[dict]:
+def _find_element_header(
+    text: str, element_type: DocumentElementType
+) -> Optional[dict]:
     keyword = element_type.to_keyword()
     if keyword is None:
         return None

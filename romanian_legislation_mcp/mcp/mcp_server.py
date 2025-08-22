@@ -5,7 +5,7 @@ import logging
 import os
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
-from romanian_legislation_mcp.document_search.search_service import SearchService
+from romanian_legislation_mcp.api_consumers.search_service import SearchService
 from romanian_legislation_mcp.mcp.tools import register_tools
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,7 @@ def init_resources():
 
     logger.info("Starting search service...")
     search_service = SearchService(soap_client=client)
+    
     logger.info("Search service succesfully started.")
 
     register_tools(app, search_service)

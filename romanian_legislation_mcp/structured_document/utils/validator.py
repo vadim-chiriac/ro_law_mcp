@@ -1,18 +1,20 @@
-from romanian_legislation_mcp.document_model.model import DocumentPartType
-from romanian_legislation_mcp.document_model.mappings.mappings import ROMAN_NUMERALS
+from romanian_legislation_mcp.structured_document.element import DocumentElementType
+from romanian_legislation_mcp.structured_document.mappings.mappings import (
+    ROMAN_NUMERALS,
+)
 
 
-def validate_header(header: str, element_type: DocumentPartType) -> bool:
+def validate_header(header: str, element_type: DocumentElementType) -> bool:
     header_str = header["header"]
-    if element_type == DocumentPartType.BOOK:
+    if element_type == DocumentElementType.BOOK:
         return _validate_book_header(header_str)
-    if element_type == DocumentPartType.TITLE:
+    if element_type == DocumentElementType.TITLE:
         return _validate_title_header(header_str)
-    if element_type == DocumentPartType.CHAPTER:
+    if element_type == DocumentElementType.CHAPTER:
         return _validate_chapter_header(header_str)
-    if element_type == DocumentPartType.SECTION:
+    if element_type == DocumentElementType.SECTION:
         return _validate_section_header(header_str)
-    if element_type == DocumentPartType.ARTICLE:
+    if element_type == DocumentElementType.ARTICLE:
         return _validate_article(header_str)
 
     return False
@@ -117,7 +119,7 @@ def _validate_article(article_name_row: str) -> bool:
     return True
 
 
-def extract_number_from_header(header: str, element_type: DocumentPartType) -> str:
+def extract_number_from_header(header: str, element_type: DocumentElementType) -> str:
     """
     Extract numeric/identifier from header based on element type.
 
@@ -133,15 +135,15 @@ def extract_number_from_header(header: str, element_type: DocumentPartType) -> s
     else:
         header_str = header
 
-    if element_type == DocumentPartType.BOOK:
+    if element_type == DocumentElementType.BOOK:
         return _extract_book_number(header_str)
-    elif element_type == DocumentPartType.TITLE:
+    elif element_type == DocumentElementType.TITLE:
         return _extract_title_number(header_str)
-    elif element_type == DocumentPartType.CHAPTER:
+    elif element_type == DocumentElementType.CHAPTER:
         return _extract_chapter_number(header_str)
-    elif element_type == DocumentPartType.SECTION:
+    elif element_type == DocumentElementType.SECTION:
         return _extract_section_number(header_str)
-    elif element_type == DocumentPartType.ARTICLE:
+    elif element_type == DocumentElementType.ARTICLE:
         return _extract_article_number(header_str)
     else:
         return "0"
@@ -179,14 +181,11 @@ def _extract_title_number(header: str) -> str:
         return "0"
 
     first_word = words[0]
+    print(f"First word: {first_word}")
+    print(header)
 
-    if first_word == "PRELIMINAR":
-        return "PRELIMINAR"
 
-    if first_word in ROMAN_NUMERALS:
-        return str(ROMAN_NUMERALS.index(first_word) + 1)
-
-    return "0"
+    return first_word
 
 
 def _extract_chapter_number(header: str) -> str:
