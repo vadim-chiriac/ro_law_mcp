@@ -1,5 +1,5 @@
-from romanian_legislation_mcp.document_model.part import DocumentPartType
-from romanian_legislation_mcp.document_model.mappings import ROMAN_NUMERALS
+from romanian_legislation_mcp.document_model.model import DocumentPartType
+from romanian_legislation_mcp.document_model.mappings.mappings import ROMAN_NUMERALS
 
 
 def validate_header(header: str, element_type: DocumentPartType) -> bool:
@@ -116,14 +116,15 @@ def _validate_article(article_name_row: str) -> bool:
 
     return True
 
+
 def extract_number_from_header(header: str, element_type: DocumentPartType) -> str:
     """
     Extract numeric/identifier from header based on element type.
-    
+
     Args:
         header: The header string or dict containing 'header' key
         element_type: The type of document element
-        
+
     Returns:
         String representation of the extracted number/identifier
     """
@@ -131,7 +132,7 @@ def extract_number_from_header(header: str, element_type: DocumentPartType) -> s
         header_str = header.get("header", "")
     else:
         header_str = header
-        
+
     if element_type == DocumentPartType.BOOK:
         return _extract_book_number(header_str)
     elif element_type == DocumentPartType.TITLE:
@@ -151,19 +152,19 @@ def _extract_book_number(header: str) -> str:
     header = header.strip()
     if not header:
         return "0"
-        
+
     words = header.split()
     if not words:
         return "0"
-        
+
     first_word = words[0]
-    
+
     if first_word in ROMAN_NUMERALS:
         return str(ROMAN_NUMERALS.index(first_word) + 1)
-    
+
     if len(first_word) == 1 and first_word.isalpha():
-        return str(ord(first_word.upper()) - ord('A') + 1)
-    
+        return str(ord(first_word.upper()) - ord("A") + 1)
+
     return "0"
 
 
@@ -172,19 +173,19 @@ def _extract_title_number(header: str) -> str:
     header = header.strip()
     if not header:
         return "0"
-        
+
     words = header.split()
     if not words:
         return "0"
-        
+
     first_word = words[0]
-    
+
     if first_word == "PRELIMINAR":
-        return "PRELIMINAR"  
-    
+        return "PRELIMINAR"
+
     if first_word in ROMAN_NUMERALS:
         return str(ROMAN_NUMERALS.index(first_word) + 1)
-    
+
     return "0"
 
 
@@ -193,16 +194,16 @@ def _extract_chapter_number(header: str) -> str:
     header = header.strip()
     if not header:
         return "0"
-        
+
     words = header.split()
     if not words:
         return "0"
-        
+
     first_word = words[0]
-    
+
     if first_word in ROMAN_NUMERALS:
         return str(ROMAN_NUMERALS.index(first_word) + 1)
-    
+
     return "0"
 
 
@@ -211,13 +212,13 @@ def _extract_section_number(header: str) -> str:
     header = header.strip()
     if not header:
         return "0"
-        
+
     words = header.split()
     if not words:
         return "0"
-    
+
     first_word = words[0]
-    
+
     if first_word == "a" and len(words) > 1:
         second_word = words[1]
         if second_word.endswith("-a"):
@@ -226,14 +227,14 @@ def _extract_section_number(header: str) -> str:
             return "0"
     else:
         number_part = first_word
-    
+
     try:
         num = int(number_part)
         if num > 0:
             return str(num)
     except ValueError:
         pass
-    
+
     return "0"
 
 
@@ -242,18 +243,18 @@ def _extract_article_number(header: str) -> str:
     header = header.strip()
     if not header:
         return "0"
-        
+
     words = header.split()
     if not words:
         return "0"
-        
+
     first_word = words[0]
-    
+
     try:
         num = int(first_word)
         if num > 0:
             return str(num)
     except ValueError:
         pass
-    
+
     return "0"

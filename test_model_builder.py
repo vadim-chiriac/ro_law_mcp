@@ -8,7 +8,7 @@ from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.document_model.model_builder import (
     ModelBuilder,
 )
-from romanian_legislation_mcp.document_search.search_service import SearchService
+from romanian_legislation_mcp.api_consumers.document_finder import DocumentFinder
 
 logger = logging.getLogger(__name__)
 
@@ -35,14 +35,17 @@ async def main():
     logger.info("SOAP client successfully started!")
 
     logger.info("Starting search service...")
-    search_service = SearchService(soap_client=client)
-    civil_code = await search_service.try_get_exact_match(
+    # search_service = SearchService(soap_client=client)
+    document_finder = DocumentFinder(legislation_client=client)
+    civil_code = await document_finder.get_document(
         document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
     logger.info("Search service succesfully started.")
     builder = ModelBuilder(civil_code)
-    builder.parse_document()
-    model = builder.model
+    controller = builder.create_controller()
+    logger.info(controller.get_article("44"))
+    search_res = controller.search_in_text("locatiune") 
+    logger.info(search_res)
     # logger.info(model.get_document_structure())
     #logger.info(builder.model.get_title(16))
     #builder.model.log()

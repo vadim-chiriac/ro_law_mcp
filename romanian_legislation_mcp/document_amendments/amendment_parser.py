@@ -1,8 +1,9 @@
-from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_model.part import DocumentPartType
+from romanian_legislation_mcp.document_amendments.amendment import (
+    Amendment,
+    AmendmentData,
+)
+from romanian_legislation_mcp.document_model.model import DocumentPartType
 
-from dataclasses import dataclass
-from typing import Optional
 import requests
 import logging
 import html
@@ -11,22 +12,6 @@ from bs4 import BeautifulSoup
 
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class Amendment:
-    amendment_type: str
-    source_str: str
-    source_url: str
-    target_element_type: DocumentPartType
-    target_element_no: Optional[str] = None
-
-
-@dataclass
-class AmendmentData:
-    amendments: list[Amendment]
-    is_document_repealed: bool
-    document: Optional[LegislationDocument] = None
 
 
 class AmendmentParser:
@@ -131,8 +116,6 @@ class AmendmentParser:
 
                 if self._is_article(target_str):
                     article_no = self._try_get_article_number(target_str)
-                    logger.info(f"Article no str: {target_str}")
-                    logger.info(f"Article no: {article_no}")
                     if article_no is not None:
                         target_type = DocumentPartType.ARTICLE
                         target_no = article_no
