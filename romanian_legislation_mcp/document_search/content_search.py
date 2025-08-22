@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from romanian_legislation_mcp.api_client.utils import create_fuzzy_romanian_pattern
 import re
 

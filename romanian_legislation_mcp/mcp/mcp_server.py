@@ -6,7 +6,7 @@ import os
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_consumers.search_service import SearchService
-from romanian_legislation_mcp.mcp.tools import register_tools
+from romanian_legislation_mcp.mcp.register_tools import register_tools
 logger = logging.getLogger(__name__)
 
 load_dotenv()

@@ -3,8 +3,8 @@ import logging
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.api_consumers.mappings.issuer_mappings import get_canonical_issuer
-from romanian_legislation_mcp.api_consumers.mappings.document_type_mappings import get_canonical_document_type
+from romanian_legislation_mcp.mappings.issuer_mappings import get_canonical_issuer
+from romanian_legislation_mcp.mappings.document_type_mappings import get_canonical_document_type
 from romanian_legislation_mcp.document_cache.document_cache import DocumentCache
 
 logger = logging.getLogger(__name__)

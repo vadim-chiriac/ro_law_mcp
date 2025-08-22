@@ -1,4 +1,3 @@
-import os
 import json
 import hashlib
 import logging
@@ -7,10 +6,10 @@ from pathlib import Path
 from dataclasses import asdict
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.api_consumers.mappings.issuer_mappings import (
+from romanian_legislation_mcp.mappings.issuer_mappings import (
     get_canonical_issuer,
 )
-from romanian_legislation_mcp.api_consumers.mappings.document_type_mappings import (
+from romanian_legislation_mcp.mappings.document_type_mappings import (
     get_canonical_document_type,
 )
 

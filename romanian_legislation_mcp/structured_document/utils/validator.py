@@ -181,9 +181,6 @@ def _extract_title_number(header: str) -> str:
         return "0"
 
     first_word = words[0]
-    print(f"First word: {first_word}")
-    print(header)
-
 
     return first_word
 
