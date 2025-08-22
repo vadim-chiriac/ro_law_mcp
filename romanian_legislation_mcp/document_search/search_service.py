@@ -5,8 +5,8 @@ import re
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
 from romanian_legislation_mcp.api_client.utils import create_fuzzy_romanian_pattern
-from romanian_legislation_mcp.document_search.exact_document_finder import (
-    ExactDocumentFinder,
+from romanian_legislation_mcp.document_search.document_finder import (
+    DocumentFinder,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class SearchService:
         :param soap_client: The instance of `SoapClient` to use for API calls
         """
         self.client = soap_client
-        self.doc_finder = ExactDocumentFinder(soap_client)
+        self.doc_finder = DocumentFinder(soap_client)
 
     async def search_content(
         self, query: str, max_results: int = 10

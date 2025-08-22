@@ -7,8 +7,8 @@ from pathlib import Path
 from dataclasses import asdict
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_search.issuer_mappings import get_canonical_issuer
-from romanian_legislation_mcp.document_search.document_type_mappings import get_canonical_document_type
+from romanian_legislation_mcp.document_search.mappings.issuer_mappings import get_canonical_issuer
+from romanian_legislation_mcp.document_search.mappings.document_type_mappings import get_canonical_document_type
 
 logger = logging.getLogger(__name__)
 

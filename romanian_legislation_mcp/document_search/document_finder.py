@@ -3,15 +3,14 @@ import logging
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_search.document_changes_parser import DocumentChangesParser
-from romanian_legislation_mcp.document_search.issuer_mappings import get_canonical_issuer
-from romanian_legislation_mcp.document_search.document_type_mappings import get_canonical_document_type
+from romanian_legislation_mcp.document_search.mappings.issuer_mappings import get_canonical_issuer
+from romanian_legislation_mcp.document_search.mappings.document_type_mappings import get_canonical_document_type
 from romanian_legislation_mcp.document_cache.document_cache import DocumentCache
 
 logger = logging.getLogger(__name__)
 
 
-class ExactDocumentFinder:
+class DocumentFinder:
     """Class responsible for trying to retrive a document by its unique identifiers,
     meaning type, number, year and issuer"""
 
@@ -23,7 +22,6 @@ class ExactDocumentFinder:
         """
 
         self.client = legislation_client
-        self.changes_parser = DocumentChangesParser()
         self.cache = DocumentCache() if enable_cache else None
 
     async def find_exact_document(
@@ -52,9 +50,7 @@ class ExactDocumentFinder:
             issuer,
             strategy="standard"
         )
-        
-        doc_changes = self.changes_parser.get_document_changes(result.url)
-        result.changes = doc_changes
+
         if result:
             if self.cache:
                 self.cache.put(result, document_type, number, year, issuer)
@@ -68,7 +64,6 @@ class ExactDocumentFinder:
             strategy="alternate"
         )
         
-        # Cache the result if found
         if result and self.cache:
             self.cache.put(result, document_type, number, year, issuer)
         

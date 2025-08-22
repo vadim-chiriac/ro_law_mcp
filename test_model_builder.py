@@ -42,6 +42,8 @@ async def main():
     logger.info("Search service succesfully started.")
     builder = ModelBuilder(civil_code)
     builder.parse_document()
+    model = builder.model
+    # logger.info(model.get_document_structure())
     #logger.info(builder.model.get_title(16))
     #builder.model.log()
 

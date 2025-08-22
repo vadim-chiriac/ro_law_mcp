@@ -1,6 +1,6 @@
 from typing import Optional
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_model.model import DocumentController
+from romanian_legislation_mcp.document_model.model import ModelController
 from romanian_legislation_mcp.document_model.part import (
     DocumentPart,
     DocumentPartType,
@@ -10,6 +10,8 @@ from romanian_legislation_mcp.document_model.validator import (
     extract_number_from_header,
 )
 import logging
+
+from romanian_legislation_mcp.document_amendments.amendment_parser import AmendmentParser
 
 logger = logging.getLogger(__name__)
 
@@ -25,19 +27,24 @@ class ModelBuilder:
             start_pos=0,
             end_pos=len(self.document.text),
         )
-        self.model = DocumentController(self.document, self.top)
+        self.model = ModelController(self.document, self.top)
+        if self.document.url:
+            self.amendment_parser = AmendmentParser(self.document.url)
+        else:
+            logger.warning(f"Document URL is None for {self.document.title}")
+            self.amendment_parser = None
 
     def parse_document(self):
         """Parses the `LegislationDocument` instance to create structured `DocumentPart` instances"""
 
         self._build_document_structure()
+        if self.amendment_parser is not None:
+            amendment_data = self.amendment_parser.get_amendment_data()
 
     def _build_document_structure(self):
         self._build_hierarchy(self.top)
-        logger.info(f"Found {len(self.model.articles)} articles.")
-        art_no = "1471"
-        art = self.model.get_article(art_no)
-        logger.info(f"Article {art_no}: {art.content}")
+        logger.info(f"Document parsing complete for {self.document.title}.")
+        
 
     def _build_hierarchy(self, element: DocumentPart):
         self._find_element_structure(element)
