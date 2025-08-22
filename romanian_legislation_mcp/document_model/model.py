@@ -1,139 +1,79 @@
+from dataclasses import dataclass
 from typing import Optional
+from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
+from romanian_legislation_mcp.document_model.part import DocumentPart, DocumentPartType
+import logging
+import uuid
 
-import enum
+logger = logging.getLogger(__name__)
 
 
-class DocumentPartType(enum.Enum):
-    TOP = 0
-    BOOK = 1
-    TITLE = 2
-    CHAPTER = 3
-    SECTION = 4
-    ARTICLE = 5
+@dataclass
+class ResultElement:
+    number: str
+    content: str
+    changes: Optional[list[dict]] = None
 
-    def to_keyword(self) -> str:
-        if self == DocumentPartType.BOOK:
-            return "Cartea"
-        elif self == DocumentPartType.TITLE:
-            return "Titlul"
-        elif self == DocumentPartType.CHAPTER:
-            return "Capitolul"
-        elif self == DocumentPartType.SECTION:
-            return "Secţiunea"
-        elif self == DocumentPartType.ARTICLE:
-            return "Articolul"
-        else:
-            return None
 
-    def get_possible_child_types(self) -> list["DocumentPartType"]:
-        """Returns all possible child element types in decreasing hierarchical order.
+class DocumentController:
+    """Class responsible for retrieving element content from a `DocumentPart`"""
 
-        The hierarchy is not strict - elements can contain both immediate children
-        and skip levels (e.g., TOP can contain BOOK and directly TITLE).
+    def __init__(self, document: LegislationDocument, top_element: DocumentPart):
+        """Creates a new document model.
+
+        :param document: The underlying `LegislationDocument` instance.
+        :param top_element: The
         """
-        if self == DocumentPartType.TOP:
-            return [
-                DocumentPartType.BOOK,
-                DocumentPartType.TITLE,
-                DocumentPartType.CHAPTER,
-                DocumentPartType.SECTION,
-                DocumentPartType.ARTICLE,
-            ]
-        elif self == DocumentPartType.BOOK:
-            return [
-                DocumentPartType.TITLE,
-                DocumentPartType.CHAPTER,
-                DocumentPartType.SECTION,
-                DocumentPartType.ARTICLE,
-            ]
-        elif self == DocumentPartType.TITLE:
-            return [
-                DocumentPartType.CHAPTER,
-                DocumentPartType.SECTION,
-                DocumentPartType.ARTICLE,
-            ]
-        elif self == DocumentPartType.CHAPTER:
-            return [DocumentPartType.SECTION, DocumentPartType.ARTICLE]
-        elif self == DocumentPartType.SECTION:
-            return [DocumentPartType.ARTICLE]
-        elif self == DocumentPartType.ARTICLE:
-            return []
-        else:
-            return []
+        self.document = document
+        self.top = top_element
+        self.articles: dict[str, DocumentPart] = {}
+        self.elements: dict[str, DocumentPart] = {}
 
-    def get_possible_equal_or_greater_types(self) -> list["DocumentPartType"]:
-        """Returns element types that are at the same hierarchical level or higher.
+    def add_article(self, article: DocumentPart):
+        if article.type_name != DocumentPartType.ARTICLE:
+            logger.warning(
+                f"Trying to add non-article element as article: {article.title}"
+            )
+            return
 
-        This is useful for determining when to close current elements during parsing.
-        The hierarchy from highest to lowest is: TOP -> BOOK -> TITLE -> CHAPTER
-        """
-        if self == DocumentPartType.TOP:
-            return []
-        elif self == DocumentPartType.BOOK:
-            return [DocumentPartType.BOOK]
-        elif self == DocumentPartType.TITLE:
-            return [
-                DocumentPartType.BOOK,
-                DocumentPartType.TITLE,
-            ]
-        elif self == DocumentPartType.CHAPTER:
-            return [
-                DocumentPartType.BOOK,
-                DocumentPartType.TITLE,
-                DocumentPartType.CHAPTER,
-            ]
-        elif self == DocumentPartType.SECTION:
-            return [
-                DocumentPartType.BOOK,
-                DocumentPartType.TITLE,
-                DocumentPartType.CHAPTER,
-                DocumentPartType.SECTION,
-            ]
-        elif self == DocumentPartType.ARTICLE:
-            return [
-                DocumentPartType.BOOK,
-                DocumentPartType.TITLE,
-                DocumentPartType.CHAPTER,
-                DocumentPartType.SECTION,
-                DocumentPartType.ARTICLE,
-            ]
-        else:
-            return []
+        art_no = article.number
+        if self.articles.get(art_no, None) is not None:
+            logger.warning(f"Article already exists: {art_no}")
+            return
 
+        self.articles[art_no] = article
 
-class DocumentPart:
-    def __init__(
-        self,
-        type_name: DocumentPartType,
-        number: str = "0",
-        start_pos=-1,
-        end_pos=-1,
-        title: str = "",
-        parent: Optional["DocumentPart"] = None,
-    ):
-        self.type_name = type_name
-        self.title = title
-        self.number = number
-        self.parent = parent
-        self.start_pos = start_pos
-        self.end_pos = end_pos
-        self.children = []
+    def add_element(self, element: DocumentPart):
+        if element is None:
+            logger.warning("Trying to add None element to model.")
 
-    def add_child(self, child: "DocumentPart"):
-        child.set_parent(self)
-        self.children.append(child)
+        if (
+            element.type_name == DocumentPartType.ARTICLE
+            or element.type_name == DocumentPartType.TOP
+        ):
+            logger.warning("Trying to add invalid element to model")
 
-    def get_children_of_type(self, child_type: DocumentPartType):
-        results = []
-        for child in self.children:
-            if child.type_name == child_type:
-                results.append(child)
+        if self.elements.get(element.id, None) is not None:
+            logger.warning(f"Element already exists: {element.id}")
+            return
 
-        return results
+        self.elements[element.id] = element
 
-    def set_parent(self, parent: "DocumentPart"):
-        self.parent = parent
-        
-    def set_number(self, number: str):
-        self.number = number
+    def get_article(self, art_no: str) -> Optional[ResultElement]:
+        art_data = self.articles.get(art_no, None)
+        if art_data is not None:
+            content = self.document.text[art_data.start_pos : art_data.end_pos]
+        # for change in self.document.changes["changes"]:
+        #     logger.info(change["target"])
+        article = ResultElement(art_data.number, content)
+        return article
 
+    def get_element_by_id(self, id: str) -> Optional[ResultElement]:
+        e_data = self.elements.get(id, None)
+        if e_data is not None:
+            content = self.document.text[e_data.start_pos : e_data.end_pos]
+        element = ResultElement(e_data.number, content)
+        return element
+    
+    def get_document_structure(self):
+        pass

@@ -1,6 +1,7 @@
 from typing import Optional
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.document_model.model import (
+from romanian_legislation_mcp.document_model.model import DocumentController
+from romanian_legislation_mcp.document_model.part import (
     DocumentPart,
     DocumentPartType,
 )
@@ -14,61 +15,35 @@ logger = logging.getLogger(__name__)
 
 
 class ModelBuilder:
+    """Class responsible for creating structured data from `LegislationDocument` objects"""
+
     def __init__(self, document: LegislationDocument):
         self.document = document
-        self.top: DocumentPart = None
-
-    def parse_document(self):
-        self._build_document_structure()
-        self.log_model_contents(5)
-
-    def log_model_contents(self, max_depth: int = None):
-        """Log the hierarchical structure of the parsed document model."""
-        if self.top is None:
-            logger.warning("No document model to log. Call parse_document() first.")
-            return
-        
-        logger.info("=== Document Model Contents ===")
-        logger.info(f"Document: {self.document.title}")
-        logger.info(f"Total text length: {len(self.document.text)} characters")
-        self._log_element(self.top, depth=0, max_depth=max_depth)
-        logger.info("=== End Document Model ===")
-
-    def _log_element(self, element: DocumentPart, depth: int = 0, max_depth: int = None):
-        """Recursively log a document element and its children."""
-        if max_depth is not None and depth > max_depth:
-            return
-        
-        indent = "  " * depth
-        # text_snippet = element.get_text(self.document.text)[:100].replace('\n', ' ')
-        # if len(text_snippet) == 100:
-        #     text_snippet += "..."
-        
-        logger.info(f"{indent}{element.type_name.name}: {element.title}")
-        logger.info(f"{indent}  Position: {element.start_pos}-{element.end_pos}")
-        logger.info(f"{indent}  Number: {element.number}")
-        #logger.info(f"{indent}  Text: {text_snippet}")
-        
-        
-        for child in element.children:
-            self._log_element(child, depth + 1, max_depth)
-
-    def _build_document_structure(self):
         self.top = DocumentPart(
             type_name=DocumentPartType.TOP,
             title=self.document.title,
             start_pos=0,
             end_pos=len(self.document.text),
         )
+        self.model = DocumentController(self.document, self.top)
+
+    def parse_document(self):
+        """Parses the `LegislationDocument` instance to create structured `DocumentPart` instances"""
+
+        self._build_document_structure()
+
+    def _build_document_structure(self):
         self._build_hierarchy(self.top)
-        
+        logger.info(f"Found {len(self.model.articles)} articles.")
+        art_no = "1471"
+        art = self.model.get_article(art_no)
+        logger.info(f"Article {art_no}: {art.content}")
 
     def _build_hierarchy(self, element: DocumentPart):
         self._find_element_structure(element)
         for child in element.children:
             if child.type_name != DocumentPartType.ARTICLE:
                 self._build_hierarchy(child)
-
 
     def _find_element_structure(self, parent: DocumentPart) -> list[DocumentPart]:
         search_start = 0
@@ -85,8 +60,13 @@ class ModelBuilder:
 
             if element is None:
                 break
-
+            
             parent.add_child(element)
+            if element.type_name == DocumentPartType.ARTICLE:
+                self.model.add_article(element)
+            elif element.type_name != DocumentPartType.TOP:
+                self.model.add_element(element)
+                
             valid_types = element.type_name.get_possible_equal_or_greater_types()
             search_start = element.end_pos - parent.start_pos
 
@@ -102,8 +82,10 @@ class ModelBuilder:
             e_header = self._find_next_valid_header(text, e_type)
             if not e_header:
                 continue
+
             next_search_start = e_header["title_end"]
             e_end = self._find_element_end(text[next_search_start:], e_type)
+
             if (
                 element is None
                 or e_header["element_start"] + offset < element.start_pos
@@ -112,6 +94,7 @@ class ModelBuilder:
                     title = e_header["header"].split()[0]
                 else:
                     title = e_header["header"]
+
                 element = DocumentPart(
                     type_name=e_type,
                     title=title,

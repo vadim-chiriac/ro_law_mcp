@@ -1,4 +1,4 @@
-from romanian_legislation_mcp.document_model.model import DocumentPartType
+from romanian_legislation_mcp.document_model.part import DocumentPartType
 from romanian_legislation_mcp.document_model.mappings import ROMAN_NUMERALS
 
 
@@ -127,7 +127,6 @@ def extract_number_from_header(header: str, element_type: DocumentPartType) -> s
     Returns:
         String representation of the extracted number/identifier
     """
-    # Handle both string and dict inputs for backward compatibility
     if isinstance(header, dict):
         header_str = header.get("header", "")
     else:
@@ -201,7 +200,6 @@ def _extract_chapter_number(header: str) -> str:
         
     first_word = words[0]
     
-    # Check if it's a Roman numeral
     if first_word in ROMAN_NUMERALS:
         return str(ROMAN_NUMERALS.index(first_word) + 1)
     
@@ -220,7 +218,6 @@ def _extract_section_number(header: str) -> str:
     
     first_word = words[0]
     
-    # Handle special case where first word is "a" (meaning it continues from previous)
     if first_word == "a" and len(words) > 1:
         second_word = words[1]
         if second_word.endswith("-a"):
@@ -228,10 +225,8 @@ def _extract_section_number(header: str) -> str:
         else:
             return "0"
     else:
-        # Direct number case
         number_part = first_word
     
-    # Try to extract the numeric part
     try:
         num = int(number_part)
         if num > 0:
@@ -254,7 +249,6 @@ def _extract_article_number(header: str) -> str:
         
     first_word = words[0]
     
-    # Try to convert the first word to an integer
     try:
         num = int(first_word)
         if num > 0:
@@ -263,6 +257,3 @@ def _extract_article_number(header: str) -> str:
         pass
     
     return "0"
-
-
-# def _extract_article_content(article_row: str) -> str:
