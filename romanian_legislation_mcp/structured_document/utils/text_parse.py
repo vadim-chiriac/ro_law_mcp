@@ -38,7 +38,7 @@ def find_element(
             )
 
     if element is not None:
-        number = extract_number_from_header(e_header, e_type)
+        number = extract_number_from_header(element.title, element.type_name)
         element.set_number(number)
 
     return element
