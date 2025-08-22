@@ -42,7 +42,8 @@ async def main():
     document = await service.get_document(
         document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
-    logger.info(document.get_json_structure())
+    #ogger.info(document.get_json_structure())
+    logger.info(document.base_document.number)
     # civil_code = await document_finder.get_document(
     #     document_type="lege", number=287, year=2009, issuer="parlamentul"
     # )
