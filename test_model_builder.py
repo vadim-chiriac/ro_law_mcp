@@ -39,7 +39,7 @@ async def main():
     # search_service = SearchService(soap_client=client)
     document_finder = DocumentFinder(legislation_client=client)
     service = StructuredDocumentService(document_finder)
-    document = await service.get_document(
+    document = await service._get_document(
         document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
     #ogger.info(document.get_json_structure())
