@@ -16,58 +16,66 @@ logger = logging.getLogger(__name__)
 
 _validator = None
 
-def find_element(
-    text: str,
-    valid_types: list[DocumentElement],
-    offset: int,
-    validator: Validator
+
+def find_first_element(
+    text: str, valid_types: list[DocumentElement], offset: int, validator: Validator
 ) -> Optional[DocumentElement]:
     global _validator
     _validator = validator
-    element_draft = None
+    valid_element_draft = None
     while len(valid_types) > 0:
         e_type = valid_types.pop(0)
-        e_header = _find_next_valid_header(text, e_type)
-        if not e_header:
+        element_draft = _find_element(text, e_type, offset)
+
+        if element_draft is None:
             continue
 
-        next_search_start = e_header["title_end"]
-        e_end = _find_element_end(text[next_search_start:], e_type)
-
         if (
-            element_draft is None
-            or e_header["element_start"] + offset < element_draft["start"]
+            valid_element_draft is None
+            or element_draft["start"] + offset < valid_element_draft["start"]
         ):
-            element_draft = {
-                "type": e_type,
-                "header": e_header["header"],
-                "start": e_header["element_start"] + offset,
-                "end": e_end + offset + next_search_start,
-            }
-
-    if element_draft is not None:
+            valid_element_draft = element_draft
+    if valid_element_draft is not None:
         number = _extract_number_from_header(
-            element_draft["header"], element_draft["type"]
+            valid_element_draft["header"], valid_element_draft["type"]
         )
-        if element_draft["type"] == DocumentElementType.ARTICLE:
-            title = _try_extract_article_title(element_draft["header"])
+        if valid_element_draft["type"] == DocumentElementType.ARTICLE:
+            title = _try_extract_article_title(valid_element_draft["header"])
             if title is None:
                 title = "N/A"
         else:
-            title = element_draft["header"]
-        
-        if element_draft["type"] == DocumentElementType.ARTICLE:
+            title = valid_element_draft["header"]
+
+        if valid_element_draft["type"] == DocumentElementType.ARTICLE:
             validator.last_valid_article_no = number
 
         return DocumentElement(
-            type_name=element_draft["type"],
+            type_name=valid_element_draft["type"],
             number=number,
             title=title,
-            start_pos=element_draft["start"],
-            end_pos=element_draft["end"],
+            start_pos=valid_element_draft["start"],
+            end_pos=valid_element_draft["end"],
         )
 
     return None
+
+
+def _find_element(text: str, e_type: DocumentElementType, offset: int):
+    e_header = _find_next_valid_header(text, e_type)
+    if not e_header:
+        return None
+
+    next_search_start = e_header["title_end"]
+    e_end = _find_element_end(text[next_search_start:], e_type)
+
+    element_draft = {
+        "type": e_type,
+        "header": e_header["header"],
+        "start": e_header["element_start"] + offset,
+        "end": e_end + offset + next_search_start,
+    }
+    
+    return element_draft
 
 
 def _find_element_end(text: str, element_type: DocumentElementType) -> int:
@@ -256,13 +264,13 @@ def _extract_article_number(header: str) -> str:
     if not header:
         return "0"
 
-    #logger.info(f"Found header: {header}")
+    # logger.info(f"Found header: {header}")
     words = header.split()
     if not words:
         return "0"
 
     first_word = words[0]
-    #logger.info(f"Found {first_word}")
+    # logger.info(f"Found {first_word}")
     if first_word in ROMAN_NUMERALS:
         return first_word
     try:

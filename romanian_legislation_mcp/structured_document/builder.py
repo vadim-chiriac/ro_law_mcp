@@ -6,7 +6,7 @@ from romanian_legislation_mcp.structured_document.element import (
     DocumentElement,
     DocumentElementType,
 )
-from romanian_legislation_mcp.structured_document.utils.text_parse import find_element
+from romanian_legislation_mcp.structured_document.utils.text_parse import find_first_element
 import logging
 
 from romanian_legislation_mcp.document_amendments.amendment_parser import (
@@ -63,7 +63,7 @@ class StructuredDocumentBuilder:
         valid_types = parent.type_name.get_possible_child_types()
 
         while search_start < len(text):
-            element = find_element(
+            element = find_first_element(
                 text[search_start:],
                 valid_types,
                 parent.start_pos + search_start,
