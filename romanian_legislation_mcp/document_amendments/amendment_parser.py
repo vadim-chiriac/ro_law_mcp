@@ -141,7 +141,7 @@ class AmendmentParser:
                 if target_type and amendment_type and source_text:
                     amendment = Amendment(
                         amendment_type=amendment_type,
-                        target_element_type=target_type,
+                        target_element_type=target_type.to_string(),
                         target_element_no=target_no,
                         source_str=source_text,
                         source_url=source_href,

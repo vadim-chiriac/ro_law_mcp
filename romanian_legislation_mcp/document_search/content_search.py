@@ -7,7 +7,7 @@ def text_search(
     text: str,
     search_query: str,
     max_excerpts: int = 5,
-    excerpt_context_chars: int = 500,
+    excerpt_context_chars: int = 100,
 ) -> Dict[str, Any]:
     """Search for specific content within a identified legal document.
     :param text:
@@ -19,12 +19,11 @@ def text_search(
     :return: Dictionary containing document info and matching excerpts
     """
 
-    search_text = text
     fuzzy_pattern = create_fuzzy_romanian_pattern(
         search_query, allow_partial_words=True
     )
     query_pattern = re.compile(fuzzy_pattern, re.IGNORECASE)
-    matches = list(query_pattern.finditer(search_text))
+    matches = list(query_pattern.finditer(text))
 
     if not matches:
         return {
@@ -54,7 +53,7 @@ def text_search(
                 "text": excerpt_text,
                 "match_start_in_excerpt": match_start_in_excerpt,
                 "match_end_in_excerpt": match_end_in_excerpt,
-                "position_in_document": actual_match_start,
+                "match_start_in_text": actual_match_start,
                 "match_length": actual_match_end - actual_match_start,
             }
         )

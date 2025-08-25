@@ -12,6 +12,7 @@ import logging
 from romanian_legislation_mcp.document_amendments.amendment_parser import (
     AmendmentParser,
 )
+from romanian_legislation_mcp.structured_document.utils.validator import Validator
 
 logger = logging.getLogger(__name__)
 
@@ -23,21 +24,23 @@ class StructuredDocumentBuilder:
         self.base_document = base_document
         self.top = DocumentElement(
             type_name=DocumentElementType.TOP,
+            number="0",
             title=self.base_document.title,
             start_pos=0,
             end_pos=len(self.base_document.text),
         )
         self.structured_document = StructuredDocument(self.base_document, self.top)
+        self.validator = Validator()
 
     def create_structured_document(self) -> StructuredDocument:
         """Parses the `LegislationDocument` instance to create structured `DocumentPart` instances"""
 
         self._find_elements(self.top)
-        logger.info(
-            f"""Found {len(self.structured_document.elements)} elements
-                    and {len(self.structured_document.articles)} articles 
-                    for {self.base_document.title}."""
-        )
+        # logger.info(
+        #     f"""Found {len(self.structured_document.elements)} elements
+        #             and {len(self.structured_document.articles)} articles 
+        #             for {self.base_document.title}."""
+        # )
         amendment_data = None
         if self.base_document.url:
             amendment_parser = AmendmentParser(self.base_document.url)
@@ -64,6 +67,7 @@ class StructuredDocumentBuilder:
                 text[search_start:],
                 valid_types,
                 parent.start_pos + search_start,
+                self.validator
             )
 
             if element is None:
@@ -71,6 +75,7 @@ class StructuredDocumentBuilder:
 
             parent.add_child(element)
             if element.type_name == DocumentElementType.ARTICLE:
+                
                 self.structured_document.add_article(element)
             elif element.type_name != DocumentElementType.TOP:
                 self.structured_document.add_element(element)

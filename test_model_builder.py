@@ -39,11 +39,22 @@ async def main():
     # search_service = SearchService(soap_client=client)
     document_finder = DocumentFinder(legislation_client=client)
     service = StructuredDocumentService(document_finder)
-    document = await service._get_document(
-        document_type="lege", number=287, year=2009, issuer="parlamentul"
+
+    # document_data = await service.get_document_data(
+    #     document_type="lege", number=132, year=2014, issuer="parlamentul"
+    # )
+    # doc = await service.get_document_by_id(document_data["id"])
+    # logger.info(doc._get_json_structure())
+    
+    document_data = await service.get_document_data(
+        document_type="lege", number=95, year=2006, issuer="parlamentul"
     )
-    #ogger.info(document.get_json_structure())
-    logger.info(document.base_document.number)
+    doc = await service.get_document_by_id(document_data["id"])
+    art_list = list(doc.articles.values())
+    logger.info(f"Article count: {len(art_list)}")
+    logger.info(f"First art: {art_list[0].number}")
+    logger.info(f"Last art: {art_list[-1].number}")
+    # # logger.info(doc.get_articles("169"))
     # civil_code = await document_finder.get_document(
     #     document_type="lege", number=287, year=2009, issuer="parlamentul"
     # )

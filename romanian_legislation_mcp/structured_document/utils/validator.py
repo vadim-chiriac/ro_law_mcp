@@ -1,256 +1,158 @@
+from typing import Optional
 from romanian_legislation_mcp.structured_document.element import DocumentElementType
 from romanian_legislation_mcp.structured_document.mappings.mappings import (
     ROMAN_NUMERALS,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def validate_header(header: str, element_type: DocumentElementType) -> bool:
-    header_str = header["header"]
-    if element_type == DocumentElementType.BOOK:
-        return _validate_book_header(header_str)
-    if element_type == DocumentElementType.TITLE:
-        return _validate_title_header(header_str)
-    if element_type == DocumentElementType.CHAPTER:
-        return _validate_chapter_header(header_str)
-    if element_type == DocumentElementType.SECTION:
-        return _validate_section_header(header_str)
-    if element_type == DocumentElementType.ARTICLE:
-        return _validate_article(header_str)
+class Validator:
+    def __init__(self):
+        self.last_valid_article_no: Optional[str] = None
 
-    return False
+    def validate_header(self, header: str, element_type: DocumentElementType) -> bool:
+        header_str = header["header"]
+        if element_type == DocumentElementType.BOOK:
+            return self._validate_book_header(header_str)
+        if element_type == DocumentElementType.TITLE:
+            return self._validate_title_header(header_str)
+        if element_type == DocumentElementType.CHAPTER:
+            return self._validate_chapter_header(header_str)
+        if element_type == DocumentElementType.SECTION:
+            return self._validate_section_header(header_str)
+        if element_type == DocumentElementType.ARTICLE:
+            return self._validate_article(header_str)
 
-
-def _validate_book_header(header: str) -> bool:
-    header = header.strip()
-
-    if len(header) == 0:
         return False
 
-    words = header.split()
-    if len(words) == 0:
-        return False
 
-    first_word = words[0]
-    if first_word not in ROMAN_NUMERALS and not (
-        len(first_word) == 1 and first_word.isalpha()
-    ):
-        return False
+    def _validate_book_header(self, header: str) -> bool:
+        header = header.strip()
 
-    if len(header) > 500:
-        return False
-
-    return True
-
-
-def _validate_title_header(header: str) -> bool:
-    header = header.strip()
-
-    words = header.split()
-    if len(words) == 0:
-        return False
-
-    first_word = words[0]
-    if first_word != "PRELIMINAR" and first_word not in ROMAN_NUMERALS:
-        return False
-
-    return True
-
-
-def _validate_chapter_header(header: str) -> bool:
-    header = header.strip()
-
-    words = header.split()
-    if len(words) == 0:
-        return False
-
-    first_word = words[0]
-    if first_word not in ROMAN_NUMERALS:
-        return False
-
-    if len(header) > 200:
-        return False
-
-    return True
-
-
-def _validate_section_header(header: str) -> bool:
-    header = header.strip()
-
-    words = header.split()
-    if len(words) == 0:
-        return False
-
-    if words[0] != "a" and words[0] != "1":
-        return False
-
-    if words[0] != "1":
-        second_word = words[1]
-        if not second_word.endswith("-a"):
+        if len(header) == 0:
             return False
-        number_part = second_word[:-2]
-    else:
-        number_part = words[0]
 
-    try:
-        num = int(number_part)
-        if num <= 0:
+        words = header.split()
+        if len(words) == 0:
             return False
-    except ValueError:
-        return False
 
-    if len(header) > 300:
-        return False
+        first_word = words[0]
+        if first_word not in ROMAN_NUMERALS and not (
+            len(first_word) == 1 and first_word.isalpha()
+        ):
+            return False
 
-    return True
+        if len(header) > 500:
+            return False
 
-
-def _validate_article(article_name_row: str) -> bool:
-    article_name_row = article_name_row.strip()
-
-    parts = article_name_row.split()
-    if len(parts) < 1:
-        return False
-
-    try:
-        int(parts[0])
-    except ValueError:
-        return False
-
-    return True
+        return True
 
 
-def extract_number_from_header(header: str, element_type: DocumentElementType) -> str:
-    """
-    Extract numeric/identifier from header based on element type.
+    def _validate_title_header(self, header: str) -> bool:
+        header = header.strip()
 
-    Args:
-        header: The header string or dict containing 'header' key
-        element_type: The type of document element
+        words = header.split()
+        if len(words) == 0:
+            return False
 
-    Returns:
-        String representation of the extracted number/identifier
-    """
-    if isinstance(header, dict):
-        header_str = header.get("header", "")
-    else:
-        header_str = header
+        first_word = words[0]
+        if first_word != "PRELIMINAR" and first_word not in ROMAN_NUMERALS:
+            return False
 
-    if element_type == DocumentElementType.BOOK:
-        return _extract_book_number(header_str)
-    elif element_type == DocumentElementType.TITLE:
-        return _extract_title_number(header_str)
-    elif element_type == DocumentElementType.CHAPTER:
-        return _extract_chapter_number(header_str)
-    elif element_type == DocumentElementType.SECTION:
-        return _extract_section_number(header_str)
-    elif element_type == DocumentElementType.ARTICLE:
-        return _extract_article_number(header_str)
-    else:
-        return "0"
+        return True
 
 
-def _extract_book_number(header: str) -> str:
-    """Extract number from book header (Roman numerals or single letters)."""
-    header = header.strip()
-    if not header:
-        return "0"
+    def _validate_chapter_header(self, header: str) -> bool:
+        header = header.strip()
 
-    words = header.split()
-    if not words:
-        return "0"
+        words = header.split()
+        if len(words) == 0:
+            return False
 
-    first_word = words[0]
+        first_word = words[0]
+        if first_word not in ROMAN_NUMERALS:
+            return False
 
-    if first_word in ROMAN_NUMERALS:
-        return str(ROMAN_NUMERALS.index(first_word) + 1)
+        if len(header) > 200:
+            return False
 
-    if len(first_word) == 1 and first_word.isalpha():
-        return str(ord(first_word.upper()) - ord("A") + 1)
-
-    return "0"
+        return True
 
 
-def _extract_title_number(header: str) -> str:
-    """Extract number from title header (Roman numerals or 'PRELIMINAR')."""
-    header = header.strip()
-    if not header:
-        return "0"
+    def _validate_section_header(self, header: str) -> bool:
+        header = header.strip()
 
-    words = header.split()
-    if not words:
-        return "0"
+        words = header.split()
+        if len(words) == 0:
+            return False
 
-    first_word = words[0]
+        if words[0] != "a" and words[0] != "1":
+            return False
 
-    return first_word
-
-
-def _extract_chapter_number(header: str) -> str:
-    """Extract number from chapter header (Roman numerals)."""
-    header = header.strip()
-    if not header:
-        return "0"
-
-    words = header.split()
-    if not words:
-        return "0"
-
-    first_word = words[0]
-
-    if first_word in ROMAN_NUMERALS:
-        return str(ROMAN_NUMERALS.index(first_word) + 1)
-
-    return "0"
-
-
-def _extract_section_number(header: str) -> str:
-    """Extract number from section header (numbers with optional '-a' suffix)."""
-    header = header.strip()
-    if not header:
-        return "0"
-
-    words = header.split()
-    if not words:
-        return "0"
-
-    first_word = words[0]
-
-    if first_word == "a" and len(words) > 1:
-        second_word = words[1]
-        if second_word.endswith("-a"):
+        if words[0] != "1":
+            second_word = words[1]
+            if not second_word.endswith("-a"):
+                return False
             number_part = second_word[:-2]
         else:
-            return "0"
-    else:
-        number_part = first_word
+            number_part = words[0]
 
-    try:
-        num = int(number_part)
-        if num > 0:
-            return str(num)
-    except ValueError:
-        pass
+        try:
+            num = int(number_part)
+            if num <= 0:
+                return False
+        except ValueError:
+            return False
 
-    return "0"
+        if len(header) > 300:
+            return False
+
+        return True
 
 
-def _extract_article_number(header: str) -> str:
-    """Extract number from article header (integer numbers)."""
-    header = header.strip()
-    if not header:
-        return "0"
+    def _validate_article(self, article_name_row: str) -> bool:
+        clean_article_name_row = article_name_row.strip()
 
-    words = header.split()
-    if not words:
-        return "0"
+        parts = clean_article_name_row.split("      ")
+        if len(parts) < 1:
+            return False
+        
+        art_no = parts[0]
+        # if art_no in ROMAN_NUMERALS:
+        #     logger.info(f"Found art_no {art_no}")
+        #     logger.info(f"Content: {clean_article_name_row[:20]}")
+        
+        return self._is_valid_article_no(self.last_valid_article_no, art_no)
+    
+    def _is_valid_article_no(self, prev: str, curr: str) -> bool:
+        if prev == None:
+            return True
+        
+        if prev in ROMAN_NUMERALS:
+            if curr in ROMAN_NUMERALS:
+                return self._compare_roman_numerals(prev, curr)
+            else:
+                return False
+        elif curr in ROMAN_NUMERALS:
+                return False
+        else:
+            try:
+                return int(curr) > int(prev)
+            except:
+                return True    
+            
+    def _compare_roman_numerals(self, first: str, second: str) -> bool:
+        """
+        Compare two Roman numerals and return True if second > first.
+        Uses the index position in ROMAN_NUMERALS list for comparison.
+        """
+        try:
+            first_index = ROMAN_NUMERALS.index(first)
+            second_index = ROMAN_NUMERALS.index(second)
+            return second_index > first_index
+        except ValueError:
+            return False
 
-    first_word = words[0]
 
-    try:
-        num = int(first_word)
-        if num > 0:
-            return str(num)
-    except ValueError:
-        pass
-
-    return "0"

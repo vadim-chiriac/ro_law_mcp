@@ -13,7 +13,7 @@ class DocumentElement:
     def __init__(
         self,
         type_name: "DocumentElementType",
-        number: str = "0",
+        number: str,
         title: str = "",
         start_pos: int = -1,
         end_pos: int = -1,
@@ -49,9 +49,6 @@ class DocumentElement:
     def set_parent(self, parent: "DocumentElement"):
         self.parent = parent
 
-    def set_number(self, number: str):
-        self.number = number
-
 
 class DocumentElementType(enum.Enum):
     """Class responsible for legal document elementy hierarchy order and helper methods"""
@@ -62,6 +59,9 @@ class DocumentElementType(enum.Enum):
     CHAPTER = 3
     SECTION = 4
     ARTICLE = 5
+    
+    def to_string(self) -> str:
+        return self.to_keyword()
 
     def to_keyword(self) -> str:
         """Returns the string used in legal documents for this type of instance

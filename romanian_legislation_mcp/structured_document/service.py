@@ -29,6 +29,10 @@ class StructuredDocumentService:
             "title": document.base_document.title,
             "issuer": document.base_document.issuer,
             "content_length": len(document.base_document.text),
+            "article_count": len(document.articles),
+            "element_count": len(document.elements),
+            "structure": document._get_json_structure(),
+            "amendment_data": document.get_general_amendment_data()
         }
         
         return data
