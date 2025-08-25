@@ -59,6 +59,8 @@ def find_first_element(
 
     return None
 
+def try_find_single_article(text: str, offset: int):
+    
 
 def _find_element(text: str, e_type: DocumentElementType, offset: int):
     e_header = _find_next_valid_header(text, e_type)
@@ -119,6 +121,12 @@ def _find_element_header(
     text: str, element_type: DocumentElementType
 ) -> Optional[dict]:
     keyword = element_type.to_keyword()
+    element = _find_element_header(text, keyword)
+    if element:
+        element[element_type] = element_type
+    return element
+    
+def _find_element_header(text: str, keyword: str):
     if keyword is None:
         return None
     element_start = text.find(keyword)
@@ -139,7 +147,6 @@ def _find_element_header(
         "element_start": element_start,
         "title_start": title_start,
         "title_end": full_title_end,
-        "element_type": element_type,
     }
 
 
