@@ -47,7 +47,7 @@ async def main():
     # logger.info(doc._get_json_structure())
     
     document_data = await service.get_document_data(
-        document_type="lege", number=95, year=2006, issuer="parlamentul"
+        document_type="lege", number=100, year=2020, issuer="parlamentul"
     )
     doc = await service.get_document_by_id(document_data["id"])
     art_list = list(doc.articles.values())
