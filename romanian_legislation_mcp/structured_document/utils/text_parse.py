@@ -23,6 +23,16 @@ def find_first_element(
     global _validator
     _validator = validator
     valid_element_draft = None
+    single_art = _try_find_single_article(text)
+    if single_art:
+        return DocumentElement(
+            type_name=single_art["type"],
+            number="UNIC",
+            title="UNIC",
+            start_pos=single_art["start"],
+            end_pos=single_art["end"],
+        )
+
     while len(valid_types) > 0:
         e_type = valid_types.pop(0)
         element_draft = _find_element(text, e_type, offset)
@@ -59,8 +69,19 @@ def find_first_element(
 
     return None
 
-def try_find_single_article(text: str, offset: int):
-    
+
+def _try_find_single_article(text: str):
+    article = _find_element_header_by_keyword(text, "ARTICOL")
+    if article:
+        return {
+            "type": DocumentElementType.ARTICLE,
+            "header": article["header"],
+            "start": article["element_start"],
+            "end": len(text),
+        }
+
+    return None
+
 
 def _find_element(text: str, e_type: DocumentElementType, offset: int):
     e_header = _find_next_valid_header(text, e_type)
@@ -76,7 +97,7 @@ def _find_element(text: str, e_type: DocumentElementType, offset: int):
         "start": e_header["element_start"] + offset,
         "end": e_end + offset + next_search_start,
     }
-    
+
     return element_draft
 
 
@@ -121,12 +142,13 @@ def _find_element_header(
     text: str, element_type: DocumentElementType
 ) -> Optional[dict]:
     keyword = element_type.to_keyword()
-    element = _find_element_header(text, keyword)
+    element = _find_element_header_by_keyword(text, keyword)
     if element:
         element[element_type] = element_type
     return element
-    
-def _find_element_header(text: str, keyword: str):
+
+
+def _find_element_header_by_keyword(text: str, keyword: str):
     if keyword is None:
         return None
     element_start = text.find(keyword)

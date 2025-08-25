@@ -4,7 +4,9 @@ import logging
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
 from romanian_legislation_mcp.mappings.issuer_mappings import get_canonical_issuer
-from romanian_legislation_mcp.mappings.document_type_mappings import get_canonical_document_type
+from romanian_legislation_mcp.mappings.document_type_mappings import (
+    get_canonical_document_type,
+)
 from romanian_legislation_mcp.document_cache.document_cache import DocumentCache
 
 logger = logging.getLogger(__name__)
@@ -25,11 +27,7 @@ class DocumentFinder:
         self.cache = DocumentCache() if enable_cache else None
 
     async def get_document(
-        self,
-        document_type: str,
-        number: int,
-        year: int,
-        issuer: str
+        self, document_type: str, number: int, year: int, issuer: str
     ) -> Optional[LegislationDocument]:
         """Tries to find an exact match for the given parameters
 
@@ -42,46 +40,35 @@ class DocumentFinder:
             cached_result = self.cache.get(document_type, number, year, issuer)
             if cached_result:
                 return cached_result
-        
+
         result = await self._try_search_strategy(
-            document_type,
-            number,
-            year,
-            issuer,
-            strategy="standard"
+            document_type, number, year, issuer, strategy="standard"
         )
 
         if result:
             if self.cache:
                 self.cache.put(result, document_type, number, year, issuer)
             return result
-        
+
         result = await self._try_search_strategy(
-            document_type,
-            number,
-            year,
-            issuer,
-            strategy="alternate"
+            document_type, number, year, issuer, strategy="alternate"
         )
-        
+
         if result and self.cache:
             self.cache.put(result, document_type, number, year, issuer)
-        
+
         return result
-    
+
     async def _try_search_strategy(
-        self,
-        document_type: str,
-        number: int,
-        year: int,
-        issuer: str,
-        strategy: str
+        self, document_type: str, number: int, year: int, issuer: str, strategy: str
     ) -> Optional[LegislationDocument]:
         """Tries one search strategy"""
-        
-        search_text = self._build_search_text(document_type, number, year, issuer, strategy)
+
+        search_text = self._build_search_text(
+            document_type, number, year, issuer, strategy
+        )
         logger.info(f"Trying {strategy} search: {search_text}")
-        
+
         try:
             results = await self.client.search_raw(title=search_text)
             logger.info(f"Found {len(results)} results for {strategy} search")
@@ -89,11 +76,15 @@ class DocumentFinder:
         except ConnectionError as e:
             logger.warning(f"{strategy.title()} search failed: {e}")
             return None
-        
-    def _build_search_text(self, document_type: str, number: int, year: int, issuer: str, strategy: str) -> str:
+
+    def _build_search_text(
+        self, document_type: str, number: int, year: int, issuer: str, strategy: str
+    ) -> str:
         """Build search text based on strategy"""
         issuer_canonical = get_canonical_issuer(issuer)
-        doc_type_canonical = get_canonical_document_type(document_type, issuer_canonical)
+        doc_type_canonical = get_canonical_document_type(
+            document_type, issuer_canonical
+        )
 
         if strategy == "standard":
             return f"{doc_type_canonical} {number} * * {year}"
@@ -101,7 +92,7 @@ class DocumentFinder:
             return f"{doc_type_canonical} {number}/{year}"
         else:
             raise ValueError(f"Unknown strategy: {strategy}")
-        
+
     def _get_exact_match(
         self,
         all_results: List[LegislationDocument],
@@ -118,16 +109,16 @@ class DocumentFinder:
 
         :return: A single `LegislationDocument` matching the parameters given by the client, or `None`.
         """
-
+        candidates: List[LegislationDocument] = []
         for result in all_results:
-            _type = result.document_type
+            doc_type = result.document_type
             issuer = result.issuer
 
-            if not self._compare_document_type(_type, expected_type, issuer):
+            if not self._compare_document_type(doc_type, expected_type, issuer):
                 continue
 
             number = result.number
-            # Sometimes, the API returns "0" as the document number for those documents which are 
+            # Sometimes, the API returns "0" as the document number for those documents which are
             # identified only by date. In this case, we skip the number check.
             # This seems to the case for document identified by date only (e.g. Norma din 01/01/2000),
             # but clients might query for this as Norma 1/2000.
@@ -137,7 +128,16 @@ class DocumentFinder:
             if not self._compare_issuer(issuer, expected_issuer):
                 continue
 
-            return result
+            candidates.append(result)
+            if len(candidates) == 2:
+                break
+
+        for c in candidates:
+            if "(*republicată*)" in c.title:
+                return c
+
+        if len(candidates) > 0:
+            return candidates[0]
 
         return None
 

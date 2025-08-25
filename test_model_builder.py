@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 
 from romanian_legislation_mcp.api_consumers.document_finder import DocumentFinder
+from romanian_legislation_mcp.api_consumers.search_service import SearchService
 from romanian_legislation_mcp.structured_document.service import (
     StructuredDocumentService,
 )
@@ -34,26 +35,26 @@ async def main():
         read_timeout=READ_TIMEOUT,
     )
     logger.info("SOAP client successfully started!")
-
-    logger.info("Starting search service...")
-    # search_service = SearchService(soap_client=client)
     document_finder = DocumentFinder(legislation_client=client)
+    # doc =  await document_finder.get_document("lege", 287, 2009, "parlamentul")
+    # logger.info(doc.title)
     service = StructuredDocumentService(document_finder)
-
-    # document_data = await service.get_document_data(
-    #     document_type="lege", number=132, year=2014, issuer="parlamentul"
-    # )
-    # doc = await service.get_document_by_id(document_data["id"])
-    # logger.info(doc._get_json_structure())
     
     document_data = await service.get_document_data(
         document_type="lege", number=287, year=2009, issuer="parlamentul"
     )
+    
     doc = await service.get_document_by_id(document_data["id"])
-    art_list = list(doc.articles.values())
-    logger.info(f"Article count: {len(art_list)}")
-    logger.info(f"First art: {art_list[0].number}")
-    logger.info(f"Last art: {art_list[-1].number}")
+    logger.info(doc._get_json_structure())
+    # for art in list(doc.articles.values()):
+    #     logger.info(f"Art no: {art.number}")
+    # art_list = list(doc.articles.values())
+    # logger.info(f"Article count: {len(art_list)}")
+    # logger.info(f"First art: {art_list[0].number}")
+    # logger.info(f"Last art: {art_list[-1].number}")
+    # # logger.info("Art. content: ")
+    # logger.info(doc.base_document.text)
+    
     # # logger.info(doc.get_articles("169"))
     # civil_code = await document_finder.get_document(
     #     document_type="lege", number=287, year=2009, issuer="parlamentul"

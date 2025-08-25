@@ -57,8 +57,8 @@ class Validator:
         if len(words) == 0:
             return False
 
-        first_word = words[0]
-        if first_word != "PRELIMINAR" and first_word not in ROMAN_NUMERALS:
+        title_no = words[0]
+        if title_no != "PRELIMINAR" and title_no not in ROMAN_NUMERALS:
             return False
 
         return True
@@ -126,6 +126,12 @@ class Validator:
         
         return self._is_valid_article_no(self.last_valid_article_no, art_no)
     
+    def _is_valid_number(self, number: str):
+        try:
+            return number in ROMAN_NUMERALS or int(number) >= 0
+        except:
+            return False
+        
     def _is_valid_article_no(self, prev: str, curr: str) -> bool:
         if prev == None:
             return True
