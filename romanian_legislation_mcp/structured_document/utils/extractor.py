@@ -15,16 +15,18 @@ class Extractor:
         self,
         header: dict,
         element_type: DocumentElementType,
-        preceding_text: dict,
+        preceding_text: str,
     ) -> Optional[dict]:
         if header is None:
             return None
 
-        header_string = header["text"].strip()
+        header_string: str = header["text"]
+        header_string.strip().removesuffix("")
         if len(header_string) == 0:
             return None
 
         if preceding_text is not None:
+            preceding_text = preceding_text.strip()
             ref_keywords = [
                 "se modifică și va avea următorul cuprins:",
                 "cu următoarea denumire:",
@@ -32,12 +34,14 @@ class Extractor:
                 "se modifică și va avea următorul cuprins:",
             ]
             
-            print(preceding_text)
-            keyword_post_list = [preceding_text["excerpt"].index(key) for key in ref_keywords]
+            #print(preceding_text)
+            keyword_post_list = [preceding_text.find(key) for key in ref_keywords]
             for i, pos in enumerate(keyword_post_list):
-                print(f"Found")
-                if pos + len(ref_keywords[i]) + preceding_text["end_pos_in_doc"] == header["start"] - 1:
+                if pos != -1:
+                    print("Found")
                     return None
+                # if pos + len(ref_keywords[i]) + preceding_text["end_pos_in_doc"] == header["start"] - 1:
+                #     return None
 
         valid_data = None
         if element_type == DocumentElementType.BOOK:
