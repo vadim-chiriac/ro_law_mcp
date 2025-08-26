@@ -46,7 +46,7 @@ async def main():
     service = StructuredDocumentService(document_finder)
     
     document_data = await service.get_document_data(
-        document_type="lege", number=95, year=2006, issuer="parlamentul"
+        document_type="lege", number=197, year=2012, issuer="parlamentul"
     )
     
     doc = await service.get_document_by_id(document_data["id"])

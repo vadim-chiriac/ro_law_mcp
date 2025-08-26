@@ -34,14 +34,11 @@ class Extractor:
                 "se modifică și va avea următorul cuprins:",
             ]
             
-            #print(preceding_text)
             keyword_post_list = [preceding_text.find(key) for key in ref_keywords]
             for i, pos in enumerate(keyword_post_list):
                 if pos != -1:
                     print("Found")
                     return None
-                # if pos + len(ref_keywords[i]) + preceding_text["end_pos_in_doc"] == header["start"] - 1:
-                #     return None
 
         valid_data = None
         if element_type == DocumentElementType.BOOK:
