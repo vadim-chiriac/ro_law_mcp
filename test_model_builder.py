@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 
@@ -35,6 +36,10 @@ async def main():
         read_timeout=READ_TIMEOUT,
     )
     logger.info("SOAP client successfully started!")
+    # service = SearchService(client)
+    # res = await service.search_title("ordonanta de urgenta 1* 2020")
+    # for r in res:
+    #     logger.info(r.title)
     document_finder = DocumentFinder(legislation_client=client)
     # doc =  await document_finder.get_document("lege", 287, 2009, "parlamentul")
     # logger.info(doc.title)
@@ -45,7 +50,21 @@ async def main():
     )
     
     doc = await service.get_document_by_id(document_data["id"])
-    logger.info(doc._get_json_structure())
+    structure = json.dumps(doc._get_json_structure()).replace("'", "\"")
+    
+    with open("example.json", "w") as f:
+        f.write(structure)
+        
+    with open("example.txt", "w") as f:
+        f.write(json.dumps(doc.base_document.text))
+        
+    with open("amendment.json", "w") as f:
+        f.write(str(doc.get_general_amendment_data()))
+    
+    logger.info(f"Parsed document has {len(doc.articles)} articles.")
+    logger.info(doc.get_articles("25"))
+    # logger.info(doc.get_articles("2585"))
+    ##logger.info(doc._get_json_structure())
     # for art in list(doc.articles.values()):
     #     logger.info(f"Art no: {art.number}")
     # art_list = list(doc.articles.values())
@@ -55,7 +74,6 @@ async def main():
     # # logger.info("Art. content: ")
     # logger.info(doc.base_document.text)
     
-    # # logger.info(doc.get_articles("169"))
     # civil_code = await document_finder.get_document(
     #     document_type="lege", number=287, year=2009, issuer="parlamentul"
     # )

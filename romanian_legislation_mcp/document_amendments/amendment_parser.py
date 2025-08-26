@@ -113,12 +113,13 @@ class AmendmentParser:
                 target_no: str = None
                 if target_str == "Actul":
                     target_type = DocumentElementType.TOP
-
-                if self._is_article(target_str):
+                elif self._is_article(target_str):
                     article_no = self._try_get_article_number(target_str)
                     if article_no is not None:
                         target_type = DocumentElementType.ARTICLE
                         target_no = article_no
+                else:
+                    logger.info(f"Unknown target string {target_str}")
 
                 amendment_type_raw = cells[1].get_text(strip=True)
                 source_cell = cells[2]

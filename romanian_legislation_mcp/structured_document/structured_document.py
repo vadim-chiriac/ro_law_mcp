@@ -57,9 +57,9 @@ class StructuredDocument:
             return
 
         art_no = article.number
-        if self.articles.get(art_no, None) is not None:
-            logger.warning(f"Article already exists: {art_no}")
-            return
+        
+        #if self.articles.get(art_no, None) is not None:
+            #logger.warning(f"Article already exists: {art_no}")
 
         self.articles[art_no] = article
 
@@ -222,6 +222,8 @@ class StructuredDocument:
                 "type": element.type_name.name.lower(),
                 "number": element.number,
                 "title": element.title,
+                "start": element.start_pos,
+                "end": element.end_pos,
                 "id": str(element.id),
             }
 

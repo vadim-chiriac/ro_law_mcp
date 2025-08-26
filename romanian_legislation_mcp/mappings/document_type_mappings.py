@@ -5,11 +5,11 @@ logger = logging.getLogger(__name__)
 SIMPLE_TYPE_MAPPINGS = {
     "lege": "lege",
     "hotarare de guvern": "hg",
-    "ordonanta de urgenta": "oug",
-    "ordonanta urgenta": "oug",
+    "ordonanta de urgenta": "ordonanta de urgenta",
+    "ordonanta urgenta": "ordonanta de urgenta",
     "ordonanta": "og",
     "ordonan?a": "og",
-    "ordonan?a de urgen?a": "oug",
+    "ordonan?a de urgen?a": "ordonanta de urgenta",
     "conven?ie":"conventie"
 }
 
