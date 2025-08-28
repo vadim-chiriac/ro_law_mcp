@@ -18,6 +18,7 @@ class DocumentElement:
         start_pos: int = -1,
         end_pos: int = -1,
         parent: Optional["DocumentElement"] = None,
+        max_depth: Optional[int] = 0
     ):
         """Initializes a new instance.
 
@@ -28,13 +29,14 @@ class DocumentElement:
         :param end_pos: End position relative to parent text
         :param parent: Parent document part, or None for the top level element
         """
-        self.id = uuid.uuid4()
+        self.id = str(uuid.uuid4())
         self.type_name = type_name
         self.number = number
         self.title = title
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.parent = parent
+        self.max_depth = max_depth
         self.children: list[DocumentElement] = []
 
     def add_child(self, child: "DocumentElement"):
@@ -45,9 +47,11 @@ class DocumentElement:
 
         child.set_parent(self)
         self.children.append(child)
-
+        
     def set_parent(self, parent: "DocumentElement"):
         self.parent = parent
+        
+        
 
 
 class DocumentElementType(enum.Enum):

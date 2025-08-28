@@ -40,10 +40,15 @@ class DocumentFinder:
             cached_result = self.cache.get(document_type, number, year, issuer)
             if cached_result:
                 return cached_result
-
-        result = await self._try_search_strategy(
-            document_type, number, year, issuer, strategy="standard"
-        )
+            
+        result = None
+        try:
+            result = await self._try_search_strategy(
+                document_type, number, year, issuer, strategy="standard"
+            )
+        except ConnectionError as e:
+            logger.warning(f"Standard search failed due to connection error: {e}")
+            return None
 
         if result:
             if self.cache:
@@ -74,8 +79,7 @@ class DocumentFinder:
             logger.info(f"Found {len(results)} results for {strategy} search")
             return self._get_exact_match(results, document_type, number, issuer)
         except ConnectionError as e:
-            logger.warning(f"{strategy.title()} search failed: {e}")
-            return None
+            raise e
 
     def _build_search_text(
         self, document_type: str, number: int, year: int, issuer: str, strategy: str

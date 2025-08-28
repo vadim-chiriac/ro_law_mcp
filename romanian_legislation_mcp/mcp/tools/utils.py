@@ -14,9 +14,12 @@ def register_document_identification_tool(app):
     async def identify_legal_document(document_description: str) -> str:
         """
         Identifies Romanian legal documents from natural language descriptions.
-
+        
         Converts user descriptions like "Civil Code", "Criminal Code", "Labor Code"
         into exact parameters needed for document_search.
+        
+        If the description already contains the year, number and type of document,
+        infer the issuer and search for those details directly, without using this tool.
 
         Use this tool when you need to find the exact document identification details
         from a natural language description. Essential for focused document searches.

@@ -1,3 +1,4 @@
+import json
 from typing import Dict
 import uuid
 from romanian_legislation_mcp.api_consumers.document_finder import DocumentFinder
@@ -19,9 +20,11 @@ class StructuredDocumentService:
     ):
         document = await self._get_document(document_type, number, year, issuer)
         if document is None:
+            print(f"Found none!")
             return None
         
-        id = str(uuid.uuid4())
+        id = str(document.top_element.id)
+        print(f"Id: {id}")
         self.documents[id] = document
         data = {
             "id": id,
@@ -30,14 +33,19 @@ class StructuredDocumentService:
             "issuer": document.base_document.issuer,
             "content_length": len(document.base_document.text),
             "article_count": len(document.articles),
-            "element_count": len(document.elements),
-            "structure": document._get_json_structure(),
-            "amendment_data": document.get_general_amendment_data()
+            "max_depth": document.top_element.max_depth,
+            "top_level_structure": document.get_element_structure(id),
+            "structural_amendment_data": document.get_structural_amendment_data(),
         }
+        structure = json.dumps(data).replace("'", "\"")
+    
+        with open("example.json", "w") as f:
+            f.write(structure)
         
         return data
     
     async def get_document_by_id(self, id: str):
+        print(f"Getting by id {id}")
         return self.documents.get(id, None)
 
     async def _get_document(

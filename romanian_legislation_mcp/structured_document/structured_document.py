@@ -24,7 +24,11 @@ class ResultElement:
     content: str
     start_pos: int
     end_pos: int
-    amendments: Optional[List[Amendment]] = None
+
+@dataclass
+class ResultArticle(ResultElement):
+    amendments: AmendmentData | None
+    is_latest_version: bool
 
 
 class StructuredDocument:
@@ -47,7 +51,7 @@ class StructuredDocument:
         self.elements: dict[str, DocumentElement] = {}
         self.amendment_data = amendment_data
         self.art_amendment_map: dict[str, list[Amendment]] = {}
-        self._document_structure_view: Optional[dict] = None
+        
 
     def add_article(self, article: DocumentElement):
         if article.type_name != DocumentElementType.ARTICLE:
@@ -57,10 +61,6 @@ class StructuredDocument:
             return
 
         art_no = article.number
-        
-        #if self.articles.get(art_no, None) is not None:
-            #logger.warning(f"Article already exists: {art_no}")
-
         self.articles[art_no] = article
 
     def add_element(self, element: DocumentElement):
@@ -81,7 +81,7 @@ class StructuredDocument:
 
     def get_articles(
         self, art_no_or_list: str | list[str]
-    ) -> List[ResultElement | dict]:
+    ) -> List[ResultArticle | dict]:
         if isinstance(art_no_or_list, str):
             art_no_or_list = [art_no_or_list]
 
@@ -95,14 +95,14 @@ class StructuredDocument:
 
         return results
 
-    def _get_article(self, art_no: str) -> Optional[ResultElement]:
+    def _get_article(self, art_no: str) -> Optional[ResultArticle]:
         article = self.articles.get(art_no, None)
         if article is None:
             return None
 
         content = self.base_document.text[article.start_pos : article.end_pos]
         amendments = self._get_amendments_for_article(article)
-        result = ResultElement(
+        result = ResultArticle(
             type=article.type_name.to_string(),
             number=article.number,
             title=article.title,
@@ -110,31 +110,18 @@ class StructuredDocument:
             start_pos=article.start_pos,
             end_pos=article.end_pos,
             amendments=amendments,
+            is_latest_version=len(amendments) == 0,
         )
 
         return result
 
-    def get_element_by_id(
-        self, id: str, include_article_changes: bool = True
-    ) -> Optional[ResultElement]:
-        element = self.elements.get(id, None)
+    def get_element_by_id(self, element_id: str) -> Optional[ResultElement]:
+        element = self.elements.get(element_id, None)
 
         if element is None:
             return None
 
         content = self.base_document.text[element.start_pos : element.end_pos]
-
-        if not include_article_changes:
-            return ResultElement(
-                type=element.type_name.to_string(),
-                number=element.number,
-                title=element.title,
-                content=content,
-                start_pos=element.start_pos,
-                end_pos=element.end_pos,
-            )
-
-        amendments = self._get_amendments_for_art_children(element)
 
         return ResultElement(
             type=element.type_name.to_string(),
@@ -143,24 +130,23 @@ class StructuredDocument:
             content=content,
             start_pos=element.start_pos,
             end_pos=element.end_pos,
-            amendments=amendments,
         )
 
     def search_in_element(
         self,
-        id: str,
+        element_id: str,
         query: str,
         start_pos: int = 0,
         end_pos: int = -1,
         max_excerpts: int = 5,
-        excerpt_context_chars: int = 500,
-        include_article_changes: bool = True,
+        excerpt_context_chars: int = 250,
+        include_article_changes: bool = False,
     ) -> Dict[str, Any]:
-        element = self.elements.get(id, None)
+        element = self.elements.get(element_id, None)
 
         if element is None:
             return {
-                "error": f"Element with id {id} not found in parent {self.base_document.title}"
+                "error": f"Element with id {element_id} not found in parent {self.base_document.title}"
             }
 
         element_text = self.get_text(element.start_pos, element.end_pos)
@@ -191,39 +177,24 @@ class StructuredDocument:
             logger.warning(e)
             return None
 
-    def get_general_amendment_data(self) -> AmendmentData:
+    def get_structural_amendment_data(self) -> AmendmentData:
         amendments = [
             a
             for a in self.amendment_data.amendments
-            if a.target_element_type != DocumentElementType.ARTICLE
+            if a.target_element_type != DocumentElementType.ARTICLE.to_string()
         ]
 
         data = AmendmentData(amendments, self.amendment_data.is_document_repealed)
         return data
 
-    def _get_json_structure(self) -> dict:
-        """Returns a hierarchical structure of the document suitable for LLM consumption.
+    def get_element_structure(self, element_id: str, max_depth: int = 0) -> dict:
+        """Builds the hierarchical element structure."""
 
-        Builds and caches the structure on first call, returns cached version on subsequent calls.
-
-        Returns:
-            dict: Hierarchical structure with type, number, title, id, and article ranges
-        """
-
-        if self._document_structure_view is None:
-            self._document_structure_view = self._build_json_structure()
-        return self._document_structure_view
-
-    def _build_json_structure(self) -> dict:
-        """Builds the hierarchical document structure."""
-
-        def _build_element_structure(element: DocumentElement) -> dict:
+        def _build_element_structure(element: DocumentElement, max_depth: int, curr_depth: int) -> dict:
             structure = {
                 "type": element.type_name.name.lower(),
                 "number": element.number,
                 "title": element.title,
-                "start": element.start_pos,
-                "end": element.end_pos,
                 "id": str(element.id),
             }
 
@@ -258,14 +229,19 @@ class StructuredDocument:
                 for child in element.children
                 if child.type_name != DocumentElementType.ARTICLE
             ]
-            if non_article_children:
+            if curr_depth < max_depth and non_article_children:
                 structure["children"] = [
-                    _build_element_structure(child) for child in non_article_children
+                    _build_element_structure(child, max_depth, curr_depth + 1) for child in non_article_children
                 ]
 
             return structure
 
-        return _build_element_structure(self.top_element)
+        element = self.elements.get(element_id, None)
+        if element is None:
+            logger.info(f"No element found with id {element_id}. Elements: {len(list(self.elements.values()))}")
+            return element
+        
+        return _build_element_structure(element, max_depth, 0)
 
     def _get_amendments_for_art_children(
         self, element: DocumentElement

@@ -119,6 +119,7 @@ class AmendmentParser:
                         target_type = DocumentElementType.ARTICLE
                         target_no = article_no
                 else:
+                    target_type = DocumentElementType.TOP
                     logger.info(f"Unknown target string {target_str}")
 
                 amendment_type_raw = cells[1].get_text(strip=True)

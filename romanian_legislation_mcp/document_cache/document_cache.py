@@ -85,7 +85,8 @@ class DocumentCache:
         """
         cache_key = self._get_cache_key(document_type, number, year, issuer)
         cache_file = self._get_cache_file_path(cache_key)
-
+        logger.info(f"Cache file: {cache_file}")
+        logger.info(f"CWD: {Path.cwd()}")
         if not cache_file.exists():
             logger.debug(
                 f"Cache miss for document: {document_type} {number}/{year} from {issuer}"

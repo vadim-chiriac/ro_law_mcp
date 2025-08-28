@@ -21,8 +21,8 @@ HOSTNAME = os.environ.get("MCP_HOSTNAME", "localhost")
 WSDL_URL = os.environ.get(
     "WSDL_URL", "https://legislatie.just.ro/apiws/FreeWebService.svc?singleWsdl"
 )
-CONNECTION_TIMEOUT = int(os.environ.get("CONNECTION_TIMEOUT", "10"))
-READ_TIMEOUT = int(os.environ.get("READ_TIMEOUT", "30"))
+CONNECTION_TIMEOUT = int(os.environ.get("CONNECTION_TIMEOUT", "5"))
+READ_TIMEOUT = int(os.environ.get("READ_TIMEOUT", "5"))
 
 app = FastMCP("Romanian Legislation MCP server")
 
@@ -46,23 +46,26 @@ async def main():
     service = StructuredDocumentService(document_finder)
     
     document_data = await service.get_document_data(
-        document_type="lege", number=197, year=2012, issuer="parlamentul"
+        document_type="LEGE", number=149, year=2022, issuer="parlamentul"
     )
-    
-    doc = await service.get_document_by_id(document_data["id"])
-    structure = json.dumps(doc._get_json_structure()).replace("'", "\"")
-    
-    with open("example.json", "w") as f:
-        f.write(structure)
+    if document_data:
+        doc = await service.get_document_by_id(document_data["id"])
+        logger.info(f"Max depth: {doc.top_element.max_depth}")
+        structure = json.dumps(doc.get_element_structure(document_data["id"], 5)).replace("'", "\"")
         
-    with open("example.txt", "w") as f:
-        f.write(json.dumps(doc.base_document.text))
+        with open("example.json", "w") as f:
+            f.write(structure)
+            
+        with open("example.txt", "w") as f:
+            f.write(json.dumps(doc.base_document.text))
+            
+        with open("amendment.json", "w") as f:
+            f.write(str(doc.get_structural_amendment_data()))
         
-    with open("amendment.json", "w") as f:
-        f.write(str(doc.get_general_amendment_data()))
-    
-    logger.info(f"Parsed document has {len(doc.articles)} articles.")
-    logger.info(doc.get_articles("25"))
+        logger.info(f"Parsed document has {len(doc.articles)} articles.")
+        #logger.info(doc.get_articles("4"))
+    else:
+        logger.error(f"Error")
     # logger.info(doc.get_articles("2585"))
     ##logger.info(doc._get_json_structure())
     # for art in list(doc.articles.values()):

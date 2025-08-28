@@ -37,7 +37,6 @@ class Extractor:
             keyword_post_list = [preceding_text.find(key) for key in ref_keywords]
             for i, pos in enumerate(keyword_post_list):
                 if pos != -1:
-                    print("Found")
                     return None
 
         valid_data = None
@@ -251,5 +250,4 @@ class Extractor:
             additional_number = int(parts[1])
             return {"base": base_number, "additional": str(additional_number)}
         except Exception:
-            print(f"Cound not parse {number}")
             return None
