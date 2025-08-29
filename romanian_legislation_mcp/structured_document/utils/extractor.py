@@ -75,7 +75,6 @@ class Extractor:
             return None
 
         first_word = words[0]
-        print(f"Found PARTEA: {first_word}")
         if len(words) == 1:
             if first_word == "SPECIALĂ" or first_word == "GENERALĂ":
                 return {"number": first_word, "title": first_word}
