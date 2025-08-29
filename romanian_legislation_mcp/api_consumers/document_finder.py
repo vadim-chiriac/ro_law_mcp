@@ -40,7 +40,7 @@ class DocumentFinder:
             cached_result = self.cache.get(document_type, number, year, issuer)
             if cached_result:
                 return cached_result
-            
+
         result = None
         try:
             result = await self._try_search_strategy(
