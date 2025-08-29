@@ -6,7 +6,7 @@ import argparse
 import sys
 
 from dotenv import load_dotenv
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 
 from romanian_legislation_mcp.api_consumers.document_finder import DocumentFinder
