@@ -120,7 +120,7 @@ class DocumentFinder:
         :param expected_no: The number of the document as given by the client
         :param expected_issuer: The issuer of the document as given by the client
 
-        :return: A single `LegislationDocument` matching the parameters given by the client, or `None`.
+        :return: A single `LegislationDocument` matching the parameters given by the client, or `None` if no document was found.
         """
         candidates: List[LegislationDocument] = []
         for result in all_results:
