@@ -43,8 +43,8 @@ class DocumentFinder:
 
         result = None
         try:
-            result = await self._try_search_strategy(
-                document_type, number, year, issuer, strategy="standard"
+            result = await self._try_title_search(
+                document_type, number, year, issuer
             )
         except ConnectionError as e:
             logger.warning(f"Standard search failed due to connection error: {e}")
@@ -55,8 +55,8 @@ class DocumentFinder:
                 self.cache.put(result, document_type, number, year, issuer)
             return result
 
-        result = await self._try_search_strategy(
-            document_type, number, year, issuer, strategy="alternate"
+        result = await self._try_number_search(
+            document_type, number, year, issuer
         )
 
         if result and self.cache:
@@ -64,25 +64,38 @@ class DocumentFinder:
 
         return result
 
-    async def _try_search_strategy(
-        self, document_type: str, number: int, year: int, issuer: str, strategy: str
+    async def _try_title_search(
+        self, document_type: str, number: int, year: int, issuer: str
     ) -> Optional[LegislationDocument]:
-        """Tries one search strategy"""
-
-        search_text = self._build_search_text(
-            document_type, number, year, issuer, strategy
+        """Tries title search strategy"""
+        search_text = self._build_title_search_text(
+            document_type, number, year, issuer
         )
-        logger.info(f"Trying {strategy} search: {search_text}")
+        logger.info(f"Trying title search: {search_text}")
 
         try:
             results = await self.client.search_raw(title=search_text)
-            logger.info(f"Found {len(results)} results for {strategy} search")
+            logger.info(f"Found {len(results)} results for title search")
+            return self._get_exact_match(results, document_type, number, issuer)
+        except ConnectionError as e:
+            raise e
+        
+    async def _try_number_search(
+        self, document_type: str, number: int, year: int, issuer: str
+    ) -> Optional[LegislationDocument]:
+        """Tries number search strategy"""
+
+        logger.info(f"Trying number search: number: {number}, year: {year}")
+
+        try:
+            results = await self.client.search_raw(number=number, year=year)
+            logger.info(f"Found {len(results)} results for number search")
             return self._get_exact_match(results, document_type, number, issuer)
         except ConnectionError as e:
             raise e
 
-    def _build_search_text(
-        self, document_type: str, number: int, year: int, issuer: str, strategy: str
+    def _build_title_search_text(
+        self, document_type: str, number: int, year: int, issuer: str
     ) -> str:
         """Build search text based on strategy"""
         issuer_canonical = get_canonical_issuer(issuer)
@@ -90,12 +103,8 @@ class DocumentFinder:
             document_type, issuer_canonical
         )
 
-        if strategy == "standard":
-            return f"{doc_type_canonical} {number} * {year}"
-        elif strategy == "alternate":
-            return f"{doc_type_canonical} {number}/{year}"
-        else:
-            raise ValueError(f"Unknown strategy: {strategy}")
+        return f"{doc_type_canonical} {number} * {year}"
+
 
     def _get_exact_match(
         self,

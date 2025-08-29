@@ -83,7 +83,7 @@ python test_structured_document.py --type LEGE --number 286 --year 2009 --issuer
 python test_structured_document.py --type LEGE --number 287 --year 2009 --issuer Parlamentul --article 1
 
 # Government ordinance using short flags
-python test_structured_document.py -t ORDONANTA -n 57 -y 2019 -i Guvernul
+python test_structured_document.py -t OUG -n 57 -y 2019 -i Guvernul
 
 # Recent legislation
 python test_structured_document.py --type LEGE --number 140 --year 2022 --issuer Parlamentul
