@@ -3,4 +3,4 @@ python-dotenv
 requests
 mcp
 uvicorn
-bs4
+beautifulsoup4 
