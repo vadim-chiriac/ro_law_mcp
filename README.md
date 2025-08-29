@@ -110,20 +110,20 @@ python run_server.py --http
 
 Add to your MCP client configuration (e.g., Claude Desktop). Choose the configuration that matches your setup:
 
-#### Option 1: Using system Python (Linux/macOS)
+#### Option 1: Using system Python (Windows)
 ```json
 {
   "mcpServers": {
     "romanian-legislation": {
       "command": "python",
-      "args": ["/path/to/ro_law_mcp/run_server.py"],
-      "cwd": "/path/to/ro_law_mcp"
+      "args": ["C:/path/to/ro_law_mcp/run_server.py"],
+      "cwd": "C:/path/to/ro_law_mcp"
     }
   }
 }
 ```
 
-#### Option 2: Using virtual environment (Linux/macOS)
+#### Option 2: Using virtual environment (Linux/macOS) (NEEDS TO BE CREATED AND ACTIVATED)
 ```json
 {
   "mcpServers": {
@@ -136,7 +136,7 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 }
 ```
 
-#### Option 3: Using virtual environment (Windows)
+#### Option 3: Using virtual environment (Windows) (NEEDS TO BE CREATED AND ACTIVATED)
 ```json
 {
   "mcpServers": {
