@@ -6,9 +6,7 @@ import os
 
 from romanian_legislation_mcp.api_client.soap_client import SoapClient
 from romanian_legislation_mcp.api_consumers.document_finder import DocumentFinder
-from romanian_legislation_mcp.api_consumers.search_service import SearchService
 from romanian_legislation_mcp.mcp.register_tools import register_tools
-from romanian_legislation_mcp.mcp.prompts import register_prompts
 from romanian_legislation_mcp.structured_document.service import StructuredDocumentService
 logger = logging.getLogger(__name__)
 
@@ -82,4 +80,3 @@ def init_resources():
     logger.info("Document service succesfully started.")
 
     register_tools(app, service)
-    register_prompts(app)
