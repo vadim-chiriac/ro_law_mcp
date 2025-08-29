@@ -18,7 +18,10 @@ def register_get_document_data(app, document_service: StructuredDocumentService)
         """Use this when you have determined you need to consult a specific document.
         It will fetch it from the database and parse it to create a structured representation.
         The table of contents from the returned dict is particularly important, as it will allow you
-        to narrow down a search to specific parts of a document's contents.
+        to narrow down a search to specific parts of a document's contents. 
+        
+        IMPORTANT: Some documents will not be parsed correctly. If the table of contents does not make sense,
+        try searching in the entire document text afterwards.
         
         Args:
             document_type: Type of document (e.g., "LEGE", "ORDONANTA")

@@ -21,7 +21,7 @@ This MCP server enables AI assistants to search and retrieve Romanian legislatio
 
 ### Key Features
 
-- **Document Parsing**: Create structured data from the raw text of a legal document
+- **Document Parsing**: Create structured data from the raw text of a legal document (might return an incorrect structure for certain documents)
 - **Document Content Search**: Precise text search within specific identified documents with contextual excerpts
 - **Document Article Retrieval**: Retrieve one or more specific articles from a legal document
 - **Document Changes Tracking**: Retrieves amendment metadata since the API only provides original document text, not consolidated versions
