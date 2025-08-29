@@ -167,6 +167,11 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 
 - **`get_correct_issuer`**: Map various issuer descriptions (e.g., "prime minister", "finance ministry") to the correct legal terms required by the SOAP API.
 
+## Troubleshooting
+
+This is a work in progress so expect issues. If experiencing weird behavior, try clearing the document cache in the `.document_cache` folder.
+For Claude Desktop, this will be located at: `C:\Users\[USERNAME]\AppData\Local\AnthropicClaude\[APP-FOLDER]` 
+
 ## Limitations
 
 - **API Dependency**: Relies on the availability of the Romanian government SOAP API

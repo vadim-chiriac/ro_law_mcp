@@ -43,7 +43,7 @@ class DocumentFinder:
 
         result = None
         try:
-            result = await self._try_number_search(
+            result = await self._try_title_search(
                 document_type, number, year, issuer
             )
         except ConnectionError as e:
@@ -55,7 +55,7 @@ class DocumentFinder:
                 self.cache.put(result, document_type, number, year, issuer)
             return result
 
-        result = await self._try_title_search(
+        result = await self._try_number_search(
             document_type, number, year, issuer
         )
 
