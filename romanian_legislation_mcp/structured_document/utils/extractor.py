@@ -24,7 +24,7 @@ class Extractor:
         header_string.strip().removesuffix("")
         if len(header_string) == 0:
             return None
-        
+
         if preceding_text is not None:
             preceding_text = preceding_text.strip()
             ref_keywords = [
@@ -33,14 +33,16 @@ class Extractor:
                 "următorul cuprins:",
                 "se modifică și va avea următorul cuprins:",
             ]
-            
+
             keyword_pos_list = [preceding_text.find(key) for key in ref_keywords]
             for pos in keyword_pos_list:
                 if pos != -1:
                     return None
 
         valid_data = None
-        if element_type == DocumentElementType.BOOK:
+        if element_type == DocumentElementType.PART:
+            valid_data = self._validate_part_header(header_string)
+        elif element_type == DocumentElementType.BOOK:
             valid_data = self._validate_book_header(header_string)
         elif element_type == DocumentElementType.TITLE:
             valid_data = self._validate_title_header(header_string)
@@ -52,16 +54,44 @@ class Extractor:
             valid_data = self._validate_article(header_string)
         else:
             return None
-        
+
         if valid_data is not None:
             title: str = valid_data.get("title", "")
             if title.startswith("-"):
                 return None
-            
+
             res = {**header, **valid_data}
             del res["text"]
             return res
         else:
+            return None
+
+    def _validate_part_header(self, header: str) -> Optional[dict]:
+        if len(header) > 150:
+            return None
+
+        words = header.split()
+        if len(words) == 0:
+            return None
+
+        first_word = words[0]
+        print(f"Found PARTEA: {first_word}")
+        if len(words) == 1:
+            if first_word == "SPECIALĂ" or first_word == "GENERALĂ":
+                return {"number": first_word, "title": first_word}
+
+        try:
+            if first_word in ROMAN_NUMERALS:
+                number = first_word
+                title = str.join(join_char, words[1:])
+            elif len(first_word) == 1 and first_word.isalpha() and len(words) > 0:
+                number = words[1]
+                title = str.join(join_char, words[2:])
+            else:
+                return None
+
+            return {"number": number, "title": title}
+        except IndexError:
             return None
 
     def _validate_book_header(self, header: str) -> Optional[dict]:

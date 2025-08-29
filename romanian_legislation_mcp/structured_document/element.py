@@ -126,15 +126,17 @@ class DocumentElementType(enum.Enum):
     """Class responsible for legal document elementy hierarchy order and helper methods"""
 
     TOP = 0
-    BOOK = 1
-    TITLE = 2
-    CHAPTER = 3
-    SECTION = 4
-    ARTICLE = 5
+    PART = 1
+    BOOK = 2
+    TITLE = 3
+    CHAPTER = 4
+    SECTION = 5
+    ARTICLE = 6
 
     def get_hierarchy(self) -> list['DocumentElementType']:
         return [
             DocumentElementType.TOP,
+            DocumentElementType.PART,
             DocumentElementType.BOOK,
             DocumentElementType.TITLE,
             DocumentElementType.CHAPTER,
@@ -150,7 +152,9 @@ class DocumentElementType(enum.Enum):
 
         :return: The string representation.
         """
-        if self == DocumentElementType.BOOK:
+        if self == DocumentElementType.PART:
+            return "PARTEA"
+        elif self == DocumentElementType.BOOK:
             return "Cartea"
         elif self == DocumentElementType.TITLE:
             return "Titlul"
