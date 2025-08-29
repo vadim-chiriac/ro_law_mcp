@@ -170,7 +170,7 @@ Add to your MCP client configuration (e.g., Claude Desktop). Choose the configur
 ## Troubleshooting
 
 This is a work in progress so expect issues. If experiencing weird behavior, try clearing the document cache in the `.document_cache` folder.
-For Claude Desktop, this will be located at: `C:\Users\[USERNAME]\AppData\Local\AnthropicClaude\[APP-FOLDER]` 
+For Claude Desktop, it will be located at: `C:\Users\[USERNAME]\AppData\Local\AnthropicClaude\[APP-FOLDER]` 
 
 ## Limitations
 
