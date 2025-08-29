@@ -20,7 +20,6 @@ class TextParser:
         text: str,
         valid_types: list[DocumentElement],
         offset: int,
-        preceding_text: dict,
     ) -> Optional[DocumentElement]:
         first_valid_header = None
 
@@ -43,7 +42,7 @@ class TextParser:
         if first_valid_header is not None:
             next_search_start = first_valid_header["end"]
             next_valid_header = self._find_next_element_header(
-                text[next_search_start:], first_valid_header["type"], None
+                text[next_search_start:], first_valid_header["type"]
             )
             if first_valid_header["type"] == DocumentElementType.ARTICLE:
                 self._extractor.last_valid_art_no = first_valid_header["number"]
@@ -80,13 +79,12 @@ class TextParser:
         self,
         text: str,
         element_type: DocumentElementType,
-        preceding_text: Optional[dict],
     ) -> dict:
         valid_siblings = element_type.get_possible_equal_or_greater_types()
         while len(valid_siblings) > 0:
             next_e_type = valid_siblings.pop(0)
             next_e_header = self._find_next_valid_header(
-                text, next_e_type, preceding_text
+                text, next_e_type, None
             )
 
             if next_e_header is not None:
@@ -95,7 +93,7 @@ class TextParser:
                 return None
 
     def _find_next_valid_header(
-        self, text: str, element_type: DocumentElementType, preceding_text: dict
+        self, text: str, element_type: DocumentElementType, preceding_text: Optional[str]
     ) -> Optional[dict]:
         keyword = element_type.to_keyword()
         header = self._find_element_header(text, element_type)
@@ -103,6 +101,7 @@ class TextParser:
             return None
 
         preceding_text = text[int(header["start"]) - 50 : int(header["start"])]
+            
         header_data = self._extractor.validate_and_extract_header(
             header, element_type, preceding_text
         )

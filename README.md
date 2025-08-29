@@ -57,6 +57,43 @@ This MCP server enables AI assistants to search and retrieve Romanian legislatio
 
 ## Usage
 
+### Testing Document Retrieval
+
+Use the `test_structured_document.py` script to test document retrieval and parsing directly. This is useful for development, debugging, or exploring the document structure before using the MCP server.
+
+**Basic Usage:**
+```bash
+python test_structured_document.py --type <TYPE> --number <NUMBER> --year <YEAR> --issuer <ISSUER>
+```
+
+**Command Line Options:**
+- `--type, -t`: Document type (e.g., `LEGE`, `ORDONANTA`, `HOTARARE`)
+- `--number, -n`: Document number (integer)
+- `--year, -y`: Publication year (integer)  
+- `--issuer, -i`: Issuing authority (e.g., `Parlamentul`, `Guvernul`)
+- `--article, -a`: Optional specific article number to retrieve
+
+**Examples:**
+
+```bash
+# Romanian Criminal Code
+python test_structured_document.py --type LEGE --number 286 --year 2009 --issuer Parlamentul
+
+# Romanian Civil Code with specific article
+python test_structured_document.py --type LEGE --number 287 --year 2009 --issuer Parlamentul --article 1
+
+# Government ordinance using short flags
+python test_structured_document.py -t ORDONANTA -n 57 -y 2019 -i Guvernul
+
+# Recent legislation
+python test_structured_document.py --type LEGE --number 140 --year 2022 --issuer Parlamentul
+```
+
+**Output:**
+- Creates `structure_<TYPE>_<NUMBER>_<YEAR>.json` with document hierarchy
+- Creates `amendments_<TYPE>_<NUMBER>_<YEAR>.json` with amendment metadata
+- Displays document statistics and article information in the console
+
 ### Running the Server
 
 **For STDIO transport (recommended)**:

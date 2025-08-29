@@ -24,7 +24,7 @@ class Extractor:
         header_string.strip().removesuffix("")
         if len(header_string) == 0:
             return None
-
+        
         if preceding_text is not None:
             preceding_text = preceding_text.strip()
             ref_keywords = [
@@ -34,8 +34,8 @@ class Extractor:
                 "se modifică și va avea următorul cuprins:",
             ]
             
-            keyword_post_list = [preceding_text.find(key) for key in ref_keywords]
-            for i, pos in enumerate(keyword_post_list):
+            keyword_pos_list = [preceding_text.find(key) for key in ref_keywords]
+            for pos in keyword_pos_list:
                 if pos != -1:
                     return None
 
@@ -52,8 +52,12 @@ class Extractor:
             valid_data = self._validate_article(header_string)
         else:
             return None
-
+        
         if valid_data is not None:
+            title: str = valid_data.get("title", "")
+            if title.startswith("-"):
+                return None
+            
             res = {**header, **valid_data}
             del res["text"]
             return res

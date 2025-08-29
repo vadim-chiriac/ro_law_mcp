@@ -58,14 +58,12 @@ class StructuredDocumentBuilder:
         valid_types = parent.type_name.get_possible_child_types()
         
         prev = None
-        preceding_text = None
         
         while search_start < len(text):
             element = self.text_parser.find_next_element(
                 text[search_start:],
                 valid_types,
                 parent.start_pos + search_start,
-                preceding_text,
             )
             if element is None:
                 break
@@ -86,12 +84,5 @@ class StructuredDocumentBuilder:
                     pass
             elif prev.type_name == element.type_name:
                 prev = element
-            else:
-                excerpt_start = prev.end_pos - min(prev.start_pos - prev.end_pos, 200)
-                prev_excerpt = text[excerpt_start : prev.end_pos]
-                preceding_text = {
-                    "excerpt": prev_excerpt,
-                    "end_pos_in_doc": element.end_pos,
-                }
 
             search_start = element.end_pos - parent.start_pos
