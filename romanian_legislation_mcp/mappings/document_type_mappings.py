@@ -11,7 +11,7 @@ SIMPLE_TYPE_MAPPINGS = {
     "ordonanta": "og",
     "ordonan?a": "og",
     "ordonan?a de urgen?a": "ordonanta de urgenta",
-    "conven?ie":"conventie"
+    "conven?ie": "conventie",
 }
 
 CONTEXT_DEPENDENT_MAPPINGS = {
@@ -21,7 +21,7 @@ CONTEXT_DEPENDENT_MAPPINGS = {
 
 def get_canonical_document_type(doc_type: str, issuer_canonical: str) -> str:
     """Get canonical document type, considering issuer context"""
-    
+
     normalized = doc_type.strip().lower()
     normalized = (
         normalized.replace("ă", "a")

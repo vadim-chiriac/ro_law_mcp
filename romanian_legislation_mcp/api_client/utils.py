@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("utils")
+logger = logging.getLogger(__name__)
 
 
 def extract_field_safely(

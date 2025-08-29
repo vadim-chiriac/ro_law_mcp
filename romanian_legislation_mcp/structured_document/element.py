@@ -18,7 +18,6 @@ class DocumentElement:
         start_pos: int = -1,
         end_pos: int = -1,
         parent: Optional["DocumentElement"] = None,
-        max_depth: Optional[int] = 0
     ):
         """Initializes a new instance.
 
@@ -36,7 +35,6 @@ class DocumentElement:
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.parent = parent
-        self.max_depth = max_depth
         self.children: list[DocumentElement] = []
 
     def add_child(self, child: "DocumentElement"):
@@ -47,11 +45,81 @@ class DocumentElement:
 
         child.set_parent(self)
         self.children.append(child)
-        
+
     def set_parent(self, parent: "DocumentElement"):
         self.parent = parent
-        
-        
+
+    def get_structure(self) -> dict:
+        structure = {
+            "type": self.type_name.name.lower(),
+            "number": self.number,
+            "title": self.title,
+            "start": self.start_pos,
+            "end": self.end_pos
+        }
+
+        article_children = [
+            child
+            for child in self.children
+            if child.type_name == DocumentElementType.ARTICLE
+        ]
+
+        if article_children:
+            numeric_articles = []
+            other_articles = []
+
+            for article in article_children:
+                if article.number.isdigit():
+                    numeric_articles.append(int(article.number))
+                else:
+                    other_articles.append(article.number)
+
+            if numeric_articles:
+                numeric_articles.sort()
+                structure["article_range"] = self._format_numeric_range(
+                    numeric_articles
+                )
+
+            if other_articles:
+                structure["other_articles"] = other_articles
+
+        non_article_children = [
+            child
+            for child in self.children
+            if child.type_name != DocumentElementType.ARTICLE
+        ]
+        if non_article_children:
+            structure["children"] = [
+                child.get_structure() for child in non_article_children
+            ]
+
+        return structure
+
+    def _format_numeric_range(self, numbers: list[int]) -> str:
+        """Formats a list of numbers into readable ranges (e.g., '1-5, 7, 9-12')"""
+        if not numbers:
+            return ""
+
+        ranges = []
+        start = numbers[0]
+        end = numbers[0]
+
+        for i in range(1, len(numbers)):
+            if numbers[i] == end + 1:
+                end = numbers[i]
+            else:
+                if start == end:
+                    ranges.append(str(start))
+                else:
+                    ranges.append(f"{start}-{end}")
+                start = end = numbers[i]
+
+        if start == end:
+            ranges.append(str(start))
+        else:
+            ranges.append(f"{start}-{end}")
+
+        return ", ".join(ranges)
 
 
 class DocumentElementType(enum.Enum):
@@ -63,7 +131,17 @@ class DocumentElementType(enum.Enum):
     CHAPTER = 3
     SECTION = 4
     ARTICLE = 5
-    
+
+    def get_hierarchy(self) -> list['DocumentElementType']:
+        return [
+            DocumentElementType.TOP,
+            DocumentElementType.BOOK,
+            DocumentElementType.TITLE,
+            DocumentElementType.CHAPTER,
+            DocumentElementType.SECTION,
+            DocumentElementType.ARTICLE,
+        ]
+
     def to_string(self) -> str:
         return self.to_keyword()
 
@@ -87,67 +165,20 @@ class DocumentElementType(enum.Enum):
 
     def get_possible_child_types(self) -> list["DocumentElementType"]:
         """Returns all possible child element types in decreasing hierarchical order."""
-        if self == DocumentElementType.TOP:
-            return [
-                DocumentElementType.BOOK,
-                DocumentElementType.TITLE,
-                DocumentElementType.CHAPTER,
-                DocumentElementType.SECTION,
-                DocumentElementType.ARTICLE,
-            ]
-        elif self == DocumentElementType.BOOK:
-            return [
-                DocumentElementType.TITLE,
-                DocumentElementType.CHAPTER,
-                DocumentElementType.SECTION,
-                DocumentElementType.ARTICLE,
-            ]
-        elif self == DocumentElementType.TITLE:
-            return [
-                DocumentElementType.CHAPTER,
-                DocumentElementType.SECTION,
-                DocumentElementType.ARTICLE,
-            ]
-        elif self == DocumentElementType.CHAPTER:
-            return [DocumentElementType.SECTION, DocumentElementType.ARTICLE]
-        elif self == DocumentElementType.SECTION:
-            return [DocumentElementType.ARTICLE]
-        elif self == DocumentElementType.ARTICLE:
+        try:
+            pos = self.get_hierarchy().index(self)
+            return self.get_hierarchy()[pos + 1:]
+        except:
             return []
-        else:
-            return []
-
+        
     def get_possible_equal_or_greater_types(self) -> list["DocumentElementType"]:
         """Returns element types that are at the same hierarchical level or higher."""
         if self == DocumentElementType.TOP:
             return []
-        elif self == DocumentElementType.BOOK:
-            return [DocumentElementType.BOOK]
-        elif self == DocumentElementType.TITLE:
-            return [
-                DocumentElementType.BOOK,
-                DocumentElementType.TITLE,
-            ]
-        elif self == DocumentElementType.CHAPTER:
-            return [
-                DocumentElementType.BOOK,
-                DocumentElementType.TITLE,
-                DocumentElementType.CHAPTER,
-            ]
-        elif self == DocumentElementType.SECTION:
-            return [
-                DocumentElementType.BOOK,
-                DocumentElementType.TITLE,
-                DocumentElementType.CHAPTER,
-                DocumentElementType.SECTION,
-            ]
-        elif self == DocumentElementType.ARTICLE:
-            return [
-                DocumentElementType.BOOK,
-                DocumentElementType.TITLE,
-                DocumentElementType.CHAPTER,
-                DocumentElementType.SECTION,
-                DocumentElementType.ARTICLE,
-            ]
         else:
-            return []
+            try:
+                pos = self.get_hierarchy().index(self)
+                return self.get_hierarchy()[:pos + 1]
+            except:
+                return []
+

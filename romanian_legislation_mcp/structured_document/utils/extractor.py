@@ -90,7 +90,7 @@ class Extractor:
         words = header.split()
         if len(words) == 0:
             return None
-        # print(f"Word is {words[0]}")
+
         try:
             if (
                 words[0] == "PRELIMINAR"

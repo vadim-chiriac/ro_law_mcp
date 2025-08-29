@@ -1,3 +1,6 @@
+# THIS IS USED MAINLY FOR DEVELOPMENT, THERE IS NO MECHANISM TO VALIDATE/UPDATE CACHED 
+# DOCUMENTS. 
+
 import json
 import hashlib
 import logging

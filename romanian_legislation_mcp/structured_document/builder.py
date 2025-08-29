@@ -30,7 +30,6 @@ class StructuredDocumentBuilder:
             end_pos=len(self.base_document.text),
         )
         self.structured_document = StructuredDocument(self.base_document, self.top)
-        self.structured_document.add_element(self.top)
         self.text_parser = TextParser()
 
     def create_structured_document(self) -> StructuredDocument:
@@ -45,42 +44,23 @@ class StructuredDocumentBuilder:
             self.structured_document.amendment_data = amendment_data
 
         return self.structured_document
-    
+        
     def _find_elements(self, element: DocumentElement):
-        # self._build_element_structure(element)
-        # # if len(element.children) > 0:
-        # #     element.max_depth +=1
-        # for child in element.children:
-        #     if child.type_name != DocumentElementType.ARTICLE:
-        #         self._find_elements_recursive(child)
-        self._find_elements_recursive(element)
-        
-
-    def _find_elements_recursive(self, element: DocumentElement):
         self._build_element_structure(element)
-        if len(element.children) == 0:
-            return 0
         
-        new_max = 1
         for child in element.children:
             if child.type_name != DocumentElementType.ARTICLE:
-                depth = self._find_elements_recursive(child)
-                if depth > new_max:
-                    new_max = depth
-                elif depth == new_max:
-                    new_max += 1
-        
-        element.max_depth = new_max
-        return new_max
+                self._find_elements(child)
 
     def _build_element_structure(self, parent: DocumentElement) -> list[DocumentElement]:
         search_start = 0
         text = self.base_document.text[parent.start_pos : parent.end_pos]
         valid_types = parent.type_name.get_possible_child_types()
+        
         prev = None
         preceding_text = None
+        
         while search_start < len(text):
-
             element = self.text_parser.find_next_element(
                 text[search_start:],
                 valid_types,

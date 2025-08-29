@@ -7,7 +7,10 @@ import signal
 from contextlib import contextmanager
 
 from romanian_legislation_mcp.api_client.legislation_document import LegislationDocument
-from romanian_legislation_mcp.api_client.utils import extract_field_safely, extract_date_safely
+from romanian_legislation_mcp.api_client.utils import (
+    extract_field_safely,
+    extract_date_safely,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +23,21 @@ class TimeoutError(Exception):
 @contextmanager
 def timeout_handler(seconds):
     """Context manager for handling timeouts on Windows and Unix systems."""
+
+    # Workaround for infinite timeouts that sometime happen with SOAP client
     def timeout_function(signum, frame):
         raise TimeoutError(f"Operation timed out after {seconds} seconds")
-    
+
     # Set up signal handler for Unix-like systems
-    if hasattr(signal, 'SIGALRM'):
+    if hasattr(signal, "SIGALRM"):
         old_handler = signal.signal(signal.SIGALRM, timeout_function)
         signal.alarm(seconds)
-    
+
     try:
         yield
     finally:
         # Clean up signal handler for Unix-like systems
-        if hasattr(signal, 'SIGALRM'):
+        if hasattr(signal, "SIGALRM"):
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
 
@@ -89,19 +94,19 @@ class SoapClient:
 
         session = Session()
         session.timeout = (self.connection_timeout, self.read_timeout)
-        
+
         retry_strategy = Retry(
-            total=0,  
+            total=0,
             connect=0,
             read=0,
             status=0,
             backoff_factor=0,
         )
-        
+
         adapter = HTTPAdapter(max_retries=retry_strategy)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        
+
         logger.info(f"Session timeout set to: {session.timeout}")
 
         transport = Transport(session=session, timeout=self.connection_timeout)
@@ -112,51 +117,55 @@ class SoapClient:
     def _get_fresh_token(self):
         """Gets a new token from the SOAP API with timeout protection."""
         logger.info("Attempting to get fresh token...")
-        
+
         try:
-            # For Windows compatibility, we'll use a different approach
-            if hasattr(signal, 'SIGALRM'):
-                # Unix-like systems
-                with timeout_handler(max(self.connection_timeout, self.read_timeout) + 2):
+            # Unix-like systems
+            if hasattr(signal, "SIGALRM"):
+                with timeout_handler(
+                    max(self.connection_timeout, self.read_timeout) + 2
+                ):
                     self.token = self.client.service.GetToken()
             else:
                 # Windows systems - rely on session timeouts
                 import threading
                 import time
-                
+
                 result = [None]
                 exception = [None]
-                
+
                 def get_token():
                     try:
                         result[0] = self.client.service.GetToken()
                     except Exception as e:
                         exception[0] = e
-                
-                # Start token retrieval in a separate thread
+
+                # Token retrieval in a separate thread
                 thread = threading.Thread(target=get_token)
                 thread.daemon = True
                 thread.start()
-                
-                # Wait for completion with timeout
+
                 timeout_duration = max(self.connection_timeout, self.read_timeout) + 5
                 thread.join(timeout=timeout_duration)
-                
+
                 if thread.is_alive():
-                    logger.error(f"Token retrieval timed out after {timeout_duration} seconds")
-                    raise TimeoutError(f"Token retrieval timed out after {timeout_duration} seconds")
-                
+                    logger.error(
+                        f"Token retrieval timed out after {timeout_duration} seconds"
+                    )
+                    raise TimeoutError(
+                        f"Token retrieval timed out after {timeout_duration} seconds"
+                    )
+
                 if exception[0] is not None:
                     raise exception[0]
-                
+
                 self.token = result[0]
-            
+
             if self.token:
                 self.token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
                 logger.info("Successfully obtained fresh token")
             else:
                 raise ConnectionError("Received empty token from API")
-                
+
         except TimeoutError as e:
             logger.error(f"Token retrieval timeout: {e}")
             raise ConnectionError(f"Token retrieval timed out: {e}")
@@ -222,54 +231,63 @@ class SoapClient:
         """
         self._ensure_valid_token()
         try:
-            # Add timeout protection for search operations as well
-            if hasattr(signal, 'SIGALRM'):
-                # Unix-like systems
-                with timeout_handler(max(self.connection_timeout, self.read_timeout) + 2):
+            if hasattr(signal, "SIGALRM"):
+                with timeout_handler(
+                    max(self.connection_timeout, self.read_timeout) + 2
+                ):
                     results = self.client.service.Search(search_model, self.token)
             else:
-                # Windows systems - rely on session timeouts and threading
                 import threading
-                
+
                 result = [None]
                 exception = [None]
-                
+
                 def execute_search():
                     try:
                         result[0] = self.client.service.Search(search_model, self.token)
                     except Exception as e:
                         exception[0] = e
-                
+
                 thread = threading.Thread(target=execute_search)
                 thread.daemon = True
                 thread.start()
-                
+
                 timeout_duration = max(self.connection_timeout, self.read_timeout) + 5
                 thread.join(timeout=timeout_duration)
-                
+
                 if thread.is_alive():
-                    logger.error(f"Search operation timed out after {timeout_duration} seconds")
-                    raise TimeoutError(f"Search operation timed out after {timeout_duration} seconds")
-                
+                    logger.error(
+                        f"Search operation timed out after {timeout_duration} seconds"
+                    )
+                    raise TimeoutError(
+                        f"Search operation timed out after {timeout_duration} seconds"
+                    )
+
                 if exception[0] is not None:
                     raise exception[0]
-                
+
                 results = result[0]
-                
+
             parsed_results = self._parse_search_results(results)
             return parsed_results
-            
+
         except TimeoutError as e:
             if retry:
-                logger.warning(f"Search timed out for page no. {search_model['NumarPagina']}, retrying...")
+                logger.warning(
+                    f"Search timed out for page no. {search_model['NumarPagina']}, retrying..."
+                )
                 try:
-                    self._ensure_valid_token()
+                    self._get_fresh_token()
                     return self._execute_page_search(search_model, False)
                 except Exception as retry_error:
-                    raise ConnectionError(f"Search timeout and retry failed for page no. {search_model['NumarPagina']}: {retry_error}")
+                    raise ConnectionError(
+                        f"Search timeout and retry failed for page no. {search_model['NumarPagina']}: {retry_error}"
+                    )
             else:
-                raise ConnectionError(f"Search timed out for page no. {search_model['NumarPagina']}: {e}")
-                
+                raise ConnectionError(
+                    f"Search timed out for page no. {search_model['NumarPagina']}: {e}"
+                )
+
         except Exception as e:
             if retry:
                 logger.info(f"Exception: {e}")
@@ -277,10 +295,12 @@ class SoapClient:
                     f"Page searched failed for page no. {search_model['NumarPagina']}, retrying..."
                 )
                 try:
-                    self._ensure_valid_token()
+                    self._get_fresh_token()
                     return self._execute_page_search(search_model, False)
                 except Exception as retry_error:
-                    raise ConnectionError(f"Search failed and retry failed for page no. {search_model['NumarPagina']}: {retry_error}")
+                    raise ConnectionError(
+                        f"Search failed and retry failed for page no. {search_model['NumarPagina']}: {retry_error}"
+                    )
             else:
                 raise ConnectionError(
                     f"Page searched failed for page no. {search_model['NumarPagina']}: {e}"
@@ -326,8 +346,6 @@ class SoapClient:
             logger.warning("Skipping record due to missing fields.")
             return None
 
-
-
         parsed_result = LegislationDocument(
             title=title,
             number=number,
@@ -369,7 +387,7 @@ class SoapClient:
 
         if page_size > 100:
             raise ValueError("Page size cannot exceed 100")
-        
+
         return {
             "NumarPagina": page,
             "RezultatePagina": page_size,
